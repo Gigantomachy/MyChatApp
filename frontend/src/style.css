@@ -1,0 +1,46 @@
+/* Aquatic blue color scheme for MyChatApp */
+
+:root {
+  --ocean-deep: #0a1628;
+  --ocean-dark: #0d2137;
+  --ocean-surface: #122a45;
+  --ocean-light: #1a3a5c;
+  --ocean-border: #1f4a6e;
+  --aqua-accent: #00acc1;
+  --aqua-light: #4dd0e1;
+  --aqua-pale: #b2ebf2;
+  --text-primary: #e0f7fa;
+  --text-secondary: #90a4ae;
+  --text-muted: #607d8b;
+  --error: #ef5350;
+  --success: #66bb6a;
+
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  background: var(--ocean-deep);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ocean-deep);
+  color: var(--text-primary);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input, button, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}

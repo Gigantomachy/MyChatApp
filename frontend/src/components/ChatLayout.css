@@ -1,0 +1,51 @@
+/* Styles for ChatLayout component */
+
+.chat-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ocean-deep);
+}
+
+.top-bar {
+  height: 52px;
+  background: var(--ocean-dark);
+  border-bottom: 1px solid var(--ocean-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.top-bar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--aqua-accent);
+}
+
+.top-bar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-bar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--aqua-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ocean-deep);
+  cursor: default;
+}
+
+.chat-layout-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}

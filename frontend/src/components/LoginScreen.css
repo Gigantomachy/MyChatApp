@@ -1,0 +1,91 @@
+/* Styles for LoginScreen component */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--ocean-deep) 0%, var(--ocean-dark) 50%, var(--ocean-surface) 100%);
+}
+
+.login-card {
+  width: 360px;
+  padding: 40px;
+  border-radius: 12px;
+  background: var(--ocean-surface);
+  border: 1px solid var(--ocean-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.login-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.login-subtitle {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.login-form-group {
+  margin-bottom: 16px;
+}
+
+.login-form-group:last-of-type {
+  margin-bottom: 20px;
+}
+
+.login-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.login-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--ocean-border);
+  background: var(--ocean-dark);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.login-error {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(239, 83, 80, 0.1);
+  color: var(--error);
+  font-size: 13px;
+}
+
+.login-button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--aqua-accent);
+  color: var(--ocean-deep);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-button:hover {
+  background: #26c6da;
+}
+
+.login-hint {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
