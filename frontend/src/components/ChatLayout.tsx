@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { users, createDmOrGroupChannel } from '../data/database'
+import { createDmOrGroupChannel } from '../data/database'
+import type { BackendUser } from '../api/client'
 import Sidebar from './Sidebar'
 import ChatArea from './ChatArea'
 import NewChatModal from './NewChatModal'
@@ -7,61 +8,58 @@ import SearchModal from './SearchModal'
 import './ChatLayout.css'
 
 interface ChatLayoutProps {
-  currentUserId: string
+  currentUser: BackendUser
   onLogout: () => void
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = ({ currentUserId }) => {
+const ChatLayout: React.FC<ChatLayoutProps> = ({ currentUser }) => {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const currentUser = users.find(u => u.id === currentUserId)!
 
   const handleStartChat = (memberIds: string[]) => {
-    const channel = createDmOrGroupChannel(currentUserId, memberIds)
+    const channel = createDmOrGroupChannel(currentUser.user_id, memberIds)
     setSelectedChannelId(channel.id)
     setIsNewChatOpen(false)
   }
 
   return (
     <div className="chat-layout">
-      {/* Top bar */}
       <div className="top-bar">
         <div className="top-bar-brand">MyChatApp</div>
 
         <div className="top-bar-user">
           <div
             className="top-bar-avatar"
-            title={`${currentUser.firstName} ${currentUser.lastName}`}
+            title={`${currentUser.first_name} ${currentUser.last_name}`}
           >
-            {currentUser.firstName[0]}{currentUser.lastName[0]}
+            {currentUser.first_name[0]}{currentUser.last_name[0]}
           </div>
         </div>
       </div>
 
-      {/* Main layout */}
       <div className="chat-layout-body">
         <Sidebar
-          currentUserId={currentUserId}
+          currentUser={currentUser}
           selectedChannelId={selectedChannelId}
           onSelectChannel={setSelectedChannelId}
           onStartNewChat={() => setIsNewChatOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
         <ChatArea
-          currentUserId={currentUserId}
+          currentUser={currentUser}
           channelId={selectedChannelId ?? ''}
         />
       </div>
 
       <NewChatModal
-        currentUserId={currentUserId}
+        currentUser={currentUser}
         isOpen={isNewChatOpen}
         onClose={() => setIsNewChatOpen(false)}
         onStartChat={handleStartChat}
       />
       <SearchModal
-        currentUserId={currentUserId}
+        currentUser={currentUser}
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
       />

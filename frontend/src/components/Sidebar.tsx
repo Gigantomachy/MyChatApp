@@ -1,9 +1,10 @@
 import React from 'react'
 import { channels, users } from '../data/database'
+import type { BackendUser } from '../api/client'
 import './Sidebar.css'
 
 interface SidebarProps {
-  currentUserId: string
+  currentUser: BackendUser
   selectedChannelId: string | null
   onSelectChannel: (channelId: string) => void
   onStartNewChat: () => void
@@ -11,28 +12,24 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  currentUserId,
+  currentUser,
   selectedChannelId,
   onSelectChannel,
   onStartNewChat,
   onOpenSearch,
 }) => {
-  const currentUser = users.find(u => u.id === currentUserId)!
+  const userId = currentUser.user_id
 
-  // Public channels where current user is a member
   const publicChannels = channels.filter(
-    ch => ch.type === 'public' && ch.memberIds.includes(currentUserId)
+    ch => ch.type === 'public' && ch.memberIds.includes(userId)
   )
 
-  // DMs + group chats = all non-public channels where current user is a member
   const dmChannels = channels.filter(
-    ch => (ch.type === 'dm' || ch.type === 'group') && ch.memberIds.includes(currentUserId)
+    ch => (ch.type === 'dm' || ch.type === 'group') && ch.memberIds.includes(userId)
   )
 
-  // For a DM, show the other person's name.
-  // For a group, show all other members' names (like Slack group DMs).
   const getDmLabel = (ch: typeof channels[0]) => {
-    const otherIds = ch.memberIds.filter(id => id !== currentUserId)
+    const otherIds = ch.memberIds.filter(id => id !== userId)
     if (otherIds.length === 0) return ch.name
     const names = otherIds.map(id => {
       const u = users.find(user => user.id === id)
@@ -59,20 +56,18 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="sidebar">
-      {/* User header */}
       <div className="sidebar-header">
         <div className="sidebar-avatar">
-          {currentUser.firstName[0]}{currentUser.lastName[0]}
+          {currentUser.first_name[0]}{currentUser.last_name[0]}
         </div>
         <div className="sidebar-user-info">
           <div className="sidebar-user-name">
-            {currentUser.firstName} {currentUser.lastName}
+            {currentUser.first_name} {currentUser.last_name}
           </div>
           <div className="sidebar-user-handle">@{currentUser.username}</div>
         </div>
       </div>
 
-      {/* Search bar */}
       <button
         className="sidebar-search-bar"
         onClick={onOpenSearch}
@@ -86,15 +81,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         <span>Search</span>
       </button>
 
-      {/* Scrollable list */}
       <div className="sidebar-scroll">
-        {/* Public Channels */}
         <div className="sidebar-section">
           <div className="sidebar-section-title">Channels</div>
           {publicChannels.map(ch => renderChannelItem(ch, ch.name))}
         </div>
 
-        {/* Direct Messages */}
         <div className="sidebar-section">
           <div className="sidebar-section-header">
             <div className="sidebar-section-title">Direct Messages</div>

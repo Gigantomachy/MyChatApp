@@ -1,41 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { allUsers, getFriendsForUser, discoverableChannels } from '../data/database'
-import type { User, Channel } from '../data/database'
+import { allUsers, getFriendsForUser } from '../data/database'
+import type { BackendUser } from '../api/client'
+import type { User } from '../data/database'
 import './SearchModal.css'
 
 interface SearchModalProps {
-  currentUserId: string
+  currentUser: BackendUser
   isOpen: boolean
   onClose: () => void
 }
 
-// Helper: returns true if current user is already in the channel
-const isChannelMember = (ch: Channel, userId: string) => ch.memberIds.includes(userId)
-
-// Helper: returns true if current user is already friends with the person
 const isFriend = (userId: string, friends: User[]) =>
   friends.some(f => f.id === userId)
 
-const SearchModal: React.FC<SearchModalProps> = ({ currentUserId, isOpen, onClose }) => {
+const SearchModal: React.FC<SearchModalProps> = ({ currentUser, isOpen, onClose }) => {
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'channels' | 'people'>('channels')
 
-  const friends = getFriendsForUser(currentUserId)
+  const friends = getFriendsForUser(currentUser.user_id)
 
-  // Filter discoverable channels (not already joined)
-  const joinableChannels = discoverableChannels.filter(
-    ch => !isChannelMember(ch, currentUserId)
-  )
-
-  // Filter users that are not already friends
   const nonFriends = allUsers.filter(
-    u => u.id !== currentUserId && !isFriend(u.id, friends)
+    u => u.id !== currentUser.user_id && !isFriend(u.id, friends)
   )
-
-  const filteredChannels = joinableChannels.filter(ch => {
-    const q = search.toLowerCase()
-    return ch.name.toLowerCase().includes(q)
-  })
 
   const filteredPeople = nonFriends.filter(u => {
     const fullName = `${u.firstName} ${u.lastName}`.toLowerCase()
@@ -44,17 +30,10 @@ const SearchModal: React.FC<SearchModalProps> = ({ currentUserId, isOpen, onClos
     return fullName.includes(q) || handle.includes(q)
   })
 
-  const handleJoinChannel = (channelId: string) => {
-    // Dummy action — does nothing for now
-    console.log(`[dummy] Join channel ${channelId}`)
-  }
-
   const handleAddFriend = (userId: string) => {
-    // Dummy action — does nothing for now
     console.log(`[dummy] Send friend request to ${userId}`)
   }
 
-  // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -101,26 +80,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ currentUserId, isOpen, onClos
 
         <div className="search-list">
           {activeTab === 'channels' && (
-            <>
-              {filteredChannels.length === 0 && (
-                <div className="search-empty">No channels found.</div>
-              )}
-              {filteredChannels.map(ch => (
-                <div key={ch.id} className="search-row">
-                  <div className="search-row-icon">#</div>
-                  <div className="search-info">
-                    <div className="search-name">{ch.name}</div>
-                    <div className="search-meta">Public channel</div>
-                  </div>
-                  <button
-                    className="search-action-btn"
-                    onClick={() => handleJoinChannel(ch.id)}
-                  >
-                    Join
-                  </button>
-                </div>
-              ))}
-            </>
+            <div className="search-empty">Channel search not yet available.</div>
           )}
 
           {activeTab === 'people' && (

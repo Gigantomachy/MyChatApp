@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { getFriendsForUser } from '../data/database'
+import type { BackendUser } from '../api/client'
 import './NewChatModal.css'
 
 interface NewChatModalProps {
-  currentUserId: string
+  currentUser: BackendUser
   isOpen: boolean
   onClose: () => void
   onStartChat: (memberIds: string[]) => void
 }
 
 const NewChatModal: React.FC<NewChatModalProps> = ({
-  currentUserId,
+  currentUser,
   isOpen,
   onClose,
   onStartChat,
@@ -18,7 +19,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  const friends = getFriendsForUser(currentUserId)
+  const friends = getFriendsForUser(currentUser.user_id)
 
   const filtered = friends.filter(f => {
     const fullName = `${f.firstName} ${f.lastName}`.toLowerCase()
@@ -40,7 +41,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({
     setSelectedIds([])
   }
 
-  // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()

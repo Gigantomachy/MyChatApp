@@ -1,21 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { channels, users, messages as allMessages } from '../data/database'
+import type { BackendUser } from '../api/client'
 import type { Message } from '../data/database'
 import './ChatArea.css'
 
 interface ChatAreaProps {
-  currentUserId: string
+  currentUser: BackendUser
   channelId: string
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
+const ChatArea: React.FC<ChatAreaProps> = ({ currentUser, channelId }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const channel = channels.find(c => c.id === channelId)
 
-  // Load messages for this channel
   useEffect(() => {
     const channelMessages = allMessages
       .filter(m => m.channelId === channelId)
@@ -23,7 +23,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
     setMessages(channelMessages)
   }, [channelId])
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -33,7 +32,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
     const newMsg: Message = {
       id: `local-${Date.now()}`,
       channelId,
-      authorId: currentUserId,
+      authorId: currentUser.user_id,
       content: input.trim(),
       timestamp: Date.now(),
     }
@@ -62,15 +61,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
   }
 
   const getAuthorName = (authorId: string) => {
+    if (authorId === currentUser.user_id) {
+      return `${currentUser.first_name} ${currentUser.last_name}`
+    }
     const u = users.find(user => user.id === authorId)
     return u ? `${u.firstName} ${u.lastName}` : 'Unknown'
   }
 
-  const isCurrentUser = (authorId: string) => authorId === currentUserId
+  const isCurrentUser = (authorId: string) => authorId === currentUser.user_id
 
   return (
     <div className="chat-area">
-      {/* Channel header */}
       <div className="chat-area-header">
         <span className="chat-area-header-icon">
           {channel.type === 'public' ? '#' : channel.type === 'group' ? '◆' : '@'}
@@ -81,14 +82,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
         </span>
       </div>
 
-      {/* Messages */}
       <div className="chat-messages">
         {messages.map(msg => (
           <div
             key={msg.id}
             className={`message ${isCurrentUser(msg.authorId) ? 'message--self' : 'message--other'}`}
           >
-            {/* Avatar */}
             <div
               className={`message-avatar ${isCurrentUser(msg.authorId) ? 'message-avatar--self' : 'message-avatar--other'}`}
             >
@@ -98,7 +97,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
                 .join('')}
             </div>
 
-            {/* Bubble */}
             <div
               className={`message-bubble ${isCurrentUser(msg.authorId) ? 'message-bubble--self' : 'message-bubble--other'}`}
             >
@@ -113,7 +111,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ currentUserId, channelId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="chat-input-area">
         <input
           type="text"
