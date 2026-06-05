@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { getFriendsForUser } from '../data/database'
-import type { BackendUser } from '../api/client'
+import { useUser } from '../context/UserContext'
 import './NewChatModal.css'
 
 interface NewChatModalProps {
-  currentUser: BackendUser
   isOpen: boolean
   onClose: () => void
   onStartChat: (memberIds: string[]) => void
 }
 
 const NewChatModal: React.FC<NewChatModalProps> = ({
-  currentUser,
   isOpen,
   onClose,
   onStartChat,
 }) => {
+  const currentUser = useUser()
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 

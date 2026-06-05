@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { allUsers, getFriendsForUser } from '../data/database'
-import type { BackendUser } from '../api/client'
+import { useUser } from '../context/UserContext'
 import type { User } from '../data/database'
 import './SearchModal.css'
-
-interface SearchModalProps {
-  currentUser: BackendUser
-  isOpen: boolean
-  onClose: () => void
-}
 
 const isFriend = (userId: string, friends: User[]) =>
   friends.some(f => f.id === userId)
 
-const SearchModal: React.FC<SearchModalProps> = ({ currentUser, isOpen, onClose }) => {
+interface SearchModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
+  const currentUser = useUser()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'channels' | 'people'>('channels')
 

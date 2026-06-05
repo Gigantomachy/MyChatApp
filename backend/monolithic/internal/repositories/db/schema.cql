@@ -16,3 +16,48 @@ CREATE TABLE IF NOT EXISTS my_chat_app.users_by_username (
     user_id uuid,
     username text
 );
+
+-- Incoming requests (partition by recipient so "my pending" is a single query)
+CREATE TABLE friend_requests (
+    recipient_id uuid,
+    sender_id uuid,
+    status text,        -- 'pending' | 'accepted' | 'rejected'
+    created_at timestamp,
+    PRIMARY KEY (recipient_id, sender_id)
+);
+
+-- Mutual friendships, stored bidirectionally
+CREATE TABLE friendships (
+    user_id uuid,
+    friend_id uuid,
+    created_at timestamp,
+    PRIMARY KEY (user_id, friend_id)
+);
+
+-- Channel metadata lookup
+CREATE TABLE channels (
+    channel_id uuid,
+    name text,
+    type text,            -- 'public' | 'group' | 'dm'
+    created_by uuid,
+    member_ids set<uuid>,
+    created_at timestamp,
+    PRIMARY KEY (channel_id)
+);
+
+-- "What channels am I in?" — single query for the sidebar
+CREATE TABLE channels_by_user (
+    user_id uuid,
+    channel_id uuid,
+    joined_at timestamp,
+    PRIMARY KEY (user_id, channel_id)
+);
+
+-- Recent messages in a channel
+CREATE TABLE messages_by_channel (
+    channel_id uuid,
+    message_id timeuuid,
+    author_id uuid,
+    content text,
+    PRIMARY KEY (channel_id, message_id)
+) WITH CLUSTERING ORDER BY (message_id DESC);

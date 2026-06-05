@@ -1,10 +1,9 @@
 import React from 'react'
 import { channels, users } from '../data/database'
-import type { BackendUser } from '../api/client'
+import { useUser } from '../context/UserContext'
 import './Sidebar.css'
 
 interface SidebarProps {
-  currentUser: BackendUser
   selectedChannelId: string | null
   onSelectChannel: (channelId: string) => void
   onStartNewChat: () => void
@@ -12,12 +11,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  currentUser,
   selectedChannelId,
   onSelectChannel,
   onStartNewChat,
   onOpenSearch,
 }) => {
+  const currentUser = useUser()
   const userId = currentUser.user_id
 
   const publicChannels = channels.filter(

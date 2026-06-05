@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { channels, users, messages as allMessages } from '../data/database'
-import type { BackendUser } from '../api/client'
+import { useUser } from '../context/UserContext'
 import type { Message } from '../data/database'
 import './ChatArea.css'
 
 interface ChatAreaProps {
-  currentUser: BackendUser
   channelId: string
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({ currentUser, channelId }) => {
+const ChatArea: React.FC<ChatAreaProps> = ({ channelId }) => {
+  const currentUser = useUser()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)

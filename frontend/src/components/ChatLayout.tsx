@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { createDmOrGroupChannel } from '../data/database'
-import type { BackendUser } from '../api/client'
+import { useUser } from '../context/UserContext'
 import Sidebar from './Sidebar'
 import ChatArea from './ChatArea'
 import NewChatModal from './NewChatModal'
@@ -8,11 +8,11 @@ import SearchModal from './SearchModal'
 import './ChatLayout.css'
 
 interface ChatLayoutProps {
-  currentUser: BackendUser
   onLogout: () => void
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = ({ currentUser }) => {
+const ChatLayout: React.FC<ChatLayoutProps> = () => {
+  const currentUser = useUser()
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -40,29 +40,23 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ currentUser }) => {
 
       <div className="chat-layout-body">
         <Sidebar
-          currentUser={currentUser}
           selectedChannelId={selectedChannelId}
           onSelectChannel={setSelectedChannelId}
           onStartNewChat={() => setIsNewChatOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
-        <ChatArea
-          currentUser={currentUser}
-          channelId={selectedChannelId ?? ''}
+        <ChatArea channelId={selectedChannelId ?? ''} />
+
+        <NewChatModal
+          isOpen={isNewChatOpen}
+          onClose={() => setIsNewChatOpen(false)}
+          onStartChat={handleStartChat}
+        />
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
         />
       </div>
-
-      <NewChatModal
-        currentUser={currentUser}
-        isOpen={isNewChatOpen}
-        onClose={() => setIsNewChatOpen(false)}
-        onStartChat={handleStartChat}
-      />
-      <SearchModal
-        currentUser={currentUser}
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
     </div>
   )
 }

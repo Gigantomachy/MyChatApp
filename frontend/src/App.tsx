@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import LoginScreen from './components/LoginScreen'
 import ChatLayout from './components/ChatLayout'
 import type { BackendUser } from './api/client'
+import { UserProvider } from './context/UserContext'
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -24,7 +25,11 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={handleLogin} />
   }
 
-  return <ChatLayout currentUser={currentUser} onLogout={handleLogout} />
+  return (
+    <UserProvider value={currentUser}>
+      <ChatLayout onLogout={handleLogout} />
+    </UserProvider>
+  )
 }
 
 export default App
