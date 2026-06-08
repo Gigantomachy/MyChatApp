@@ -17,6 +17,10 @@ func NewUserRepository(session *gocql.Session) *UserRepository {
 
 func (r *UserRepository) CreateUser(user *models.User) error {
 	batch := r.session.NewBatch(gocql.LoggedBatch)
+
+	// group multiple statements so they are sent together as one unit
+	// note that nothing here guarantees uniqueness - cassandra will actually overwrite if a username already exists
+	// the uniqueness check is done in services
 	batch.Query(
 		"INSERT INTO users_by_id (user_id, username, password_hash, email, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		user.UserID, user.Username, user.PasswordHash, user.Email, user.FirstName, user.LastName, user.CreatedAt,

@@ -17,16 +17,20 @@ func main() {
 		hosts = strings.Split(env, ",")
 	}
 
+	// initialize cassandra DB
 	session, err := db.InitSession(hosts, "my_chat_app")
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
 	defer session.Close()
 
+	// initialize and inject auth controller
 	userRepo := db.NewUserRepository(session)
 	userService := services.NewUserService(userRepo)
 	authController := controllers.NewAuthController(userService)
 
-	r := routers.SetupRouter(authController)
-	r.Run(":8080")
+	r := routers.NewRouter(authController)
+
+	engine := r.Setup()
+	engine.Run(":8080")
 }

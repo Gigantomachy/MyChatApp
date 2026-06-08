@@ -1,11 +1,9 @@
 package controllers
 
 import (
-	"net/http"
-
 	"MyChatApp/monolithic/internal/services"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type AuthController struct {

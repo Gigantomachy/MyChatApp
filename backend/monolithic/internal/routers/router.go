@@ -2,13 +2,24 @@ package routers
 
 import (
 	"MyChatApp/monolithic/internal/controllers"
+	"MyChatApp/monolithic/internal/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(authController *controllers.AuthController) *gin.Engine {
-	r := gin.Default()
+type Router struct {
+	authController *controllers.AuthController
+}
+
+func NewRouter(authcontroller *controllers.AuthController) *Router {
+	return &Router{
+		authController: authcontroller,
+	}
+}
+
+func (r *Router) Setup() *gin.Engine {
+	engine := gin.Default()
 
 	// setup CORS
 	config := cors.DefaultConfig()
@@ -21,11 +32,13 @@ func SetupRouter(authController *controllers.AuthController) *gin.Engine {
 	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 
-	r.Use(cors.New(config))
+	engine.Use(cors.New(config))
 
 	// register routes for login and registration
-	r.POST("/register", authController.Register)
-	r.POST("/login", authController.Login)
+	engine.POST("/register", r.authController.Register)
+	engine.POST("/login", r.authController.Login)
 
-	return r
+	engine.Use(middleware.JWTAuthMiddleware())
+
+	return engine
 }
