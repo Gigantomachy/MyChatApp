@@ -18,10 +18,6 @@ func NewFriendshipRepository(session *gocql.Session) *FriendshipRepository {
 }
 
 /*
-DELETE	/friend-requests/:sender_id	Reject (or cancel if I'm the sender)
-
-GET	/friends	List my mutual friends
-
 GET /friend-requests
 {
   "incoming": [
@@ -120,6 +116,58 @@ func (f *FriendshipRepository) AcceptFriendRequest(fr *models.FriendRequest) err
 	batch.Query(
 		"INSERT INTO friendships (user_id, friend_id, created_at) VALUES (?, ?, ?)",
 		fr.SenderID, fr.RecipientID, fr.CreatedAt,
+	)
+
+	return f.session.ExecuteBatch(batch)
+}
+
+// DELETE	/friend-requests/:sender_id	Reject (or cancel if I'm the sender)
+func (f *FriendshipRepository) DeleteFriendRequest(recipient_id, sender_id gocql.UUID) error {
+	return f.session.Query(
+		"DELETE FROM friend_requests WHERE recipient_id = ? AND sender_id = ?",
+		recipient_id, sender_id,
+	).Exec()
+}
+
+// GET	/friends	List my mutual friends
+func (f *FriendshipRepository) GetFriendships(user_id gocql.UUID) ([]models.FriendShip, error) {
+	iter := f.session.Query(
+		"SELECT user_id, friend_id, created_at FROM friendships WHERE user_id = ?",
+		user_id,
+	).Iter()
+
+	var friendships []models.FriendShip
+	var UserID gocql.UUID
+	var FriendID gocql.UUID
+	var CreatedAt time.Time
+
+	for iter.Scan(&UserID, &FriendID, &CreatedAt) {
+		friendships = append(friendships, models.FriendShip{
+			UserID:    UserID,
+			FriendID:  FriendID,
+			CreatedAt: CreatedAt,
+		})
+	}
+
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+
+	return friendships, nil
+}
+
+// delete friendship (un-friend)
+func (f *FriendshipRepository) DeleteFriendship(user_id, friend_id gocql.UUID) error {
+	batch := f.session.NewBatch(gocql.LoggedBatch)
+
+	batch.Query(
+		"DELETE FROM friendships WHERE user_id = ? AND friend_id = ?",
+		user_id, friend_id,
+	)
+
+	batch.Query(
+		"DELETE FROM friendships WHERE user_id = ? AND friend_id = ?",
+		friend_id, user_id,
 	)
 
 	return f.session.ExecuteBatch(batch)
