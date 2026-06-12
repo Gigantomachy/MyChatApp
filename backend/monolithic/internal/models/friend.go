@@ -33,6 +33,6 @@ type FriendShip struct {
 type FriendRequest struct {
 	RecipientID gocql.UUID `json:"recipient_id"`
 	SenderID    gocql.UUID `json:"sender_id"`
-	Status      string     `json:"status"`
+	Status      string     `json:"status"` // PENDING / ACCEPTED / DECLINED
 	CreatedAt   time.Time  `json:"created_at"`
 }

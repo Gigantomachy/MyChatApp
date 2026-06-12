@@ -57,3 +57,28 @@ func (r *UserRepository) FindByID(userID gocql.UUID) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+// get multiple users at once
+func (r *UserRepository) FindByIDs(userIDs []gocql.UUID) ([]models.User, error) {
+	if len(userIDs) == 0 {
+		return []models.User{}, nil
+	}
+
+	iter := r.session.Query(
+		"SELECT user_id, username, first_name, last_name FROM users_by_id WHERE user_id IN ?",
+		userIDs,
+	).Iter()
+
+	var users []models.User
+	var user models.User
+
+	for iter.Scan(&user.UserID, &user.FirstName, &user.LastName) {
+		users = append(users, user)
+	}
+
+	if err := iter.Close(); err != nil {
+		return []models.User{}, err
+	}
+
+	return users, nil
+}
