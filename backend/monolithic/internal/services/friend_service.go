@@ -72,15 +72,15 @@ func (fs *FriendService) RemoveFriend(user_id, friend_id string) error {
 	return err
 }
 
-func (fs *FriendService) SendFriendRequest(user_id, recipient_id string) error {
+func (fs *FriendService) SendFriendRequest(user_id, recipient_id string) (*models.FriendRequest, error) {
 	userID, err := gocql.ParseUUID(user_id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	recipientID, err := gocql.ParseUUID(recipient_id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fr := models.FriendRequest{
@@ -90,7 +90,7 @@ func (fs *FriendService) SendFriendRequest(user_id, recipient_id string) error {
 		CreatedAt:   time.Now(),
 	}
 
-	return fs.friendRepo.CreateFriendRequest(&fr)
+	return &fr, fs.friendRepo.CreateFriendRequest(&fr)
 }
 
 func (fs *FriendService) AcceptFriendRequest(recipient_id, sender_id string) error {
