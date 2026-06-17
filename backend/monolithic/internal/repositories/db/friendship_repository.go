@@ -76,6 +76,22 @@ func (f *FriendshipRepository) GetFriendRequests(userID gocql.UUID) ([]models.Fr
 	return requests, nil
 }
 
+func (f *FriendshipRepository) GetFriendRequestByIDs(recipient_id, sender_id gocql.UUID) (*models.FriendRequest, error) {
+	// err := session.Query(`SELECT id, text FROM tweet WHERE timeline = ? LIMIT 1`, "me").Scan(&id, &text)
+	var freq models.FriendRequest
+
+	err := f.session.Query(
+		"SELECT recipient_id, sender_id, status, created_at FROM friend_requests WHERE recipient_id = ? AND sender_id = ?",
+		recipient_id, sender_id,
+	).Scan(&freq.RecipientID, &freq.SenderID, &freq.Status, &freq.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &freq, nil
+}
+
 // POST	/friend-requests	Send a request to someone { "recipient_id": "uuid-string" }
 func (f *FriendshipRepository) CreateFriendRequest(fr *models.FriendRequest) error {
 	return f.session.Query(

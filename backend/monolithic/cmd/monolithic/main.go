@@ -29,7 +29,14 @@ func main() {
 	userService := services.NewUserService(userRepo)
 	authController := controllers.NewAuthController(userService)
 
-	r := routers.NewRouter(authController)
+	friendRepo := db.NewFriendshipRepository(session)
+	friendService := services.NewFriendService(friendRepo, userRepo)
+	friendController := controllers.NewFriendController(friendService)
+
+	r := routers.NewRouter(routers.RouterDependencies{
+		AuthController:   authController,
+		FriendController: friendController,
+	})
 
 	engine := r.Setup()
 	engine.Run(":8080")

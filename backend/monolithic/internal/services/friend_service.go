@@ -178,3 +178,22 @@ func (fs *FriendService) GetFriendRequests(user_id string) ([]FriendRequestItem,
 
 	return friendRequestDTOs, nil
 }
+
+func (fs *FriendService) GetFriendRequestByIDs(recipient_id, sender_id string) (*models.FriendRequest, error) {
+	recipientID, err := gocql.ParseUUID(recipient_id)
+	if err != nil {
+		return &models.FriendRequest{}, err
+	}
+
+	senderID, err := gocql.ParseUUID(sender_id)
+	if err != nil {
+		return &models.FriendRequest{}, err
+	}
+
+	freq, err := fs.friendRepo.GetFriendRequestByIDs(recipientID, senderID)
+	if err != nil {
+		return &models.FriendRequest{}, err
+	}
+
+	return freq, nil
+}

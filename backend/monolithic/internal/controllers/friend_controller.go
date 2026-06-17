@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/gocql/gocql"
 	"net/http"
 )
 
@@ -78,6 +80,34 @@ func (f *FriendController) GetFriendRequests(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, freqs)
+}
+
+// GET /friend-requests/:id
+func (f *FriendController) GetFriendRequestByID(c *gin.Context) {
+	user_id, exists := c.Get("user_id") // sender
+	if !exists || user_id == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing user_id"})
+		return
+	}
+
+	recipient_id := c.Param("id")
+	if recipient_id == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing recipient_id"})
+		return
+	}
+
+	freq, err := f.friendService.GetFriendRequestByIDs(recipient_id, user_id.(string))
+	if err != nil {
+		if errors.Is(err, gocql.ErrNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, freq)
 }
 
 // POST /friend-requests/:id
