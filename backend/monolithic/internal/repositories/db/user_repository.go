@@ -82,3 +82,23 @@ func (r *UserRepository) FindByIDs(userIDs []gocql.UUID) ([]models.User, error) 
 
 	return users, nil
 }
+
+func (r *UserRepository) GetAllUsers() ([]models.User, error) {
+	iter := r.session.Query(
+		"SELECT user_id, username, email, first_name, last_name, created_at FROM users_by_id",
+	).Iter()
+
+	var users []models.User
+	var user models.User
+
+	for iter.Scan(&user.UserID, &user.Username, &user.Email,
+		&user.FirstName, &user.LastName, &user.CreatedAt) {
+		users = append(users, user)
+	}
+
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

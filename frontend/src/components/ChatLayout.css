@@ -30,10 +30,11 @@
   gap: 12px;
 }
 
-.top-bar-avatar {
+.top-bar-avatar-btn {
   width: 34px;
   height: 34px;
   border-radius: 50%;
+  border: none;
   background: var(--aqua-accent);
   display: flex;
   align-items: center;
@@ -41,7 +42,12 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--ocean-deep);
-  cursor: default;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.top-bar-avatar-btn:hover {
+  opacity: 0.85;
 }
 
 .chat-layout-body {

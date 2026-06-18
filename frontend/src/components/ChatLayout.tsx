@@ -5,17 +5,19 @@ import Sidebar from './Sidebar'
 import ChatArea from './ChatArea'
 import NewChatModal from './NewChatModal'
 import SearchModal from './SearchModal'
+import ProfilePanel from './ProfilePanel'
 import './ChatLayout.css'
 
 interface ChatLayoutProps {
   onLogout: () => void
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = () => {
+const ChatLayout: React.FC<ChatLayoutProps> = ({ onLogout }) => {
   const currentUser = useUser()
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const handleStartChat = (memberIds: string[]) => {
     const channel = createDmOrGroupChannel(currentUser.user_id, memberIds)
@@ -29,14 +31,22 @@ const ChatLayout: React.FC<ChatLayoutProps> = () => {
         <div className="top-bar-brand">MyChatApp</div>
 
         <div className="top-bar-user">
-          <div
-            className="top-bar-avatar"
+          <button
+            className="top-bar-avatar-btn"
+            onClick={() => setIsProfileOpen(prev => !prev)}
             title={`${currentUser.first_name} ${currentUser.last_name}`}
           >
             {currentUser.first_name[0]}{currentUser.last_name[0]}
-          </div>
+          </button>
         </div>
       </div>
+
+      {isProfileOpen && (
+        <ProfilePanel
+          onClose={() => setIsProfileOpen(false)}
+          onLogout={onLogout}
+        />
+      )}
 
       <div className="chat-layout-body">
         <Sidebar

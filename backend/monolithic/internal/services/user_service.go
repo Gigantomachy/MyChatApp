@@ -93,3 +93,25 @@ func (s *UserService) generateJWT(user *models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
+
+func (s *UserService) SearchUsers(query string) ([]models.User, error) {
+	all, err := s.repo.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	if query == "" {
+		return all, nil
+	}
+
+	lower := strings.ToLower(query)
+	var filtered []models.User
+	for _, u := range all {
+		if strings.Contains(strings.ToLower(u.Username), lower) ||
+			strings.Contains(strings.ToLower(u.FirstName), lower) ||
+			strings.Contains(strings.ToLower(u.LastName), lower) {
+			filtered = append(filtered, u)
+		}
+	}
+	return filtered, nil
+}

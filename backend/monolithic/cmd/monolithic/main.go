@@ -33,9 +33,12 @@ func main() {
 	friendService := services.NewFriendService(friendRepo, userRepo)
 	friendController := controllers.NewFriendController(friendService)
 
+	userController := controllers.NewUserController(userService)
+
 	r := routers.NewRouter(routers.RouterDependencies{
 		AuthController:   authController,
 		FriendController: friendController,
+		UserController:   userController,
 	})
 
 	engine := r.Setup()

@@ -181,3 +181,21 @@
   color: var(--ocean-deep);
   border-color: var(--aqua-accent);
 }
+
+.search-action-btn--cancel {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.search-action-btn--cancel:hover {
+  background: var(--error);
+  color: var(--ocean-deep);
+  border-color: var(--error);
+}
+
+.search-error {
+  text-align: center;
+  font-size: 13px;
+  color: var(--error);
+  padding: 10px 16px;
+}

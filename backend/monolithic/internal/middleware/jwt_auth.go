@@ -43,7 +43,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				return nil, errors.New("unexpected signing method")
 			}
 
-			return secret, nil
+			return []byte(secret), nil
 		})
 
 		if err != nil || !token.Valid {

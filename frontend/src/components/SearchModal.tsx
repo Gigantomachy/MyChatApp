@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { allUsers, getFriendsForUser } from '../data/database'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useUser } from '../context/UserContext'
-import type { User } from '../data/database'
+import {
+  searchUsers,
+  getFriends,
+  getFriendRequestByID,
+  sendFriendRequest,
+  cancelFriendRequest,
+  type BackendUser,
+} from '../api/client'
 import './SearchModal.css'
-
-const isFriend = (userId: string, friends: User[]) =>
-  friends.some(f => f.id === userId)
 
 interface SearchModalProps {
   isOpen: boolean
@@ -16,23 +19,48 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const currentUser = useUser()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'channels' | 'people'>('channels')
+  const [allUsers, setAllUsers] = useState<BackendUser[]>([])
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
+  const [pendingSent, setPendingSent] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
 
-  const friends = getFriendsForUser(currentUser.user_id)
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [users, friends] = await Promise.all([searchUsers(), getFriends()])
+      setAllUsers(users.filter(u => u.user_id !== currentUser.user_id))
+      setFriendIds(new Set(friends.map(f => f.user_id)))
 
-  const nonFriends = allUsers.filter(
-    u => u.id !== currentUser.user_id && !isFriend(u.id, friends)
-  )
+      const pending = new Set<string>()
+      const checks = users
+        .filter(u => u.user_id !== currentUser.user_id)
+        .map(async u => {
+          try {
+            const req = await getFriendRequestByID(u.user_id)
+            if (req.status === 'PENDING') {
+              pending.add(u.user_id)
+            }
+          } catch {
+            // 404 or error means no pending request, ignore
+          }
+        })
+      await Promise.allSettled(checks)
+      setPendingSent(pending)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser.user_id])
 
-  const filteredPeople = nonFriends.filter(u => {
-    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase()
-    const handle = u.username.toLowerCase()
-    const q = search.toLowerCase()
-    return fullName.includes(q) || handle.includes(q)
-  })
-
-  const handleAddFriend = (userId: string) => {
-    console.log(`[dummy] Send friend request to ${userId}`)
-  }
+  useEffect(() => {
+    if (isOpen) {
+      fetchData()
+    }
+  }, [isOpen, fetchData])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -41,6 +69,39 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     if (isOpen) window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
+
+  const nonFriends = allUsers.filter(u => !friendIds.has(u.user_id))
+
+  const filteredPeople = nonFriends.filter(u => {
+    const fullName = `${u.first_name} ${u.last_name}`.toLowerCase()
+    const handle = u.username.toLowerCase()
+    const q = search.toLowerCase()
+    return fullName.includes(q) || handle.includes(q)
+  })
+
+  const handleAddFriend = async (recipientId: string) => {
+    setActionError('')
+    try {
+      await sendFriendRequest(recipientId)
+      setPendingSent(prev => new Set(prev).add(recipientId))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to send request')
+    }
+  }
+
+  const handleCancel = async (recipientId: string) => {
+    setActionError('')
+    try {
+      await cancelFriendRequest(recipientId)
+      setPendingSent(prev => {
+        const next = new Set(prev)
+        next.delete(recipientId)
+        return next
+      })
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to cancel request')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -85,24 +146,36 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
 
           {activeTab === 'people' && (
             <>
-              {filteredPeople.length === 0 && (
+              {actionError && <div className="search-error">{actionError}</div>}
+              {error && <div className="search-error">{error}</div>}
+              {loading && <div className="search-empty">Loading...</div>}
+              {!loading && !error && filteredPeople.length === 0 && (
                 <div className="search-empty">No people found.</div>
               )}
-              {filteredPeople.map(u => (
-                <div key={u.id} className="search-row">
+              {!loading && filteredPeople.map(u => (
+                <div key={u.user_id} className="search-row">
                   <div className="search-avatar">
-                    {u.firstName[0]}{u.lastName[0]}
+                    {u.first_name[0]}{u.last_name[0]}
                   </div>
                   <div className="search-info">
-                    <div className="search-name">{u.firstName} {u.lastName}</div>
+                    <div className="search-name">{u.first_name} {u.last_name}</div>
                     <div className="search-meta">@{u.username}</div>
                   </div>
-                  <button
-                    className="search-action-btn"
-                    onClick={() => handleAddFriend(u.id)}
-                  >
-                    Add Friend
-                  </button>
+                  {pendingSent.has(u.user_id) ? (
+                    <button
+                      className="search-action-btn search-action-btn--cancel"
+                      onClick={() => handleCancel(u.user_id)}
+                    >
+                      Cancel
+                    </button>
+                  ) : (
+                    <button
+                      className="search-action-btn"
+                      onClick={() => handleAddFriend(u.user_id)}
+                    >
+                      Add Friend
+                    </button>
+                  )}
                 </div>
               ))}
             </>

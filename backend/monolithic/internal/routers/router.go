@@ -12,6 +12,7 @@ import (
 type RouterDependencies struct {
 	AuthController   *controllers.AuthController
 	FriendController *controllers.FriendController
+	UserController   *controllers.UserController
 
 	// add channel controller later
 }
@@ -51,6 +52,8 @@ func (r *Router) Setup() *gin.Engine {
 		api.Use(middleware.JWTAuthMiddleware())
 
 		{
+			api.GET("/users", r.UserController.SearchUsers)
+
 			api.GET("/friends", r.FriendController.GetFriends)
 			api.DELETE("/friends/:id", r.FriendController.RemoveFriend)
 
