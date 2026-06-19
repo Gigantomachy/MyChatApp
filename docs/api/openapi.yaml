@@ -2,10 +2,10 @@ openapi: "3.0.3"
 info:
   title: MyChatApp API
   version: "0.1.0"
-  description: Auth endpoints for user registration and login.
+  description: Auth and friends endpoints for MyChatApp.
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080/api
     description: Local dev server
 
 paths:
@@ -73,7 +73,310 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /users:
+    get:
+      summary: Search all users
+      operationId: searchUsers
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Search query (matches username, first name, or last name)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users matching the query (or all users if no query)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends:
+    get:
+      summary: List the authenticated user's friends
+      operationId: getFriends
+      tags:
+        - Friends
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of friends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "400":
+          description: Missing user_id in context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friends/{id}:
+    delete:
+      summary: Remove a friend
+      operationId: removeFriend
+      tags:
+        - Friends
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the friend to remove
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Friend removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoveFriendResponse"
+        "400":
+          description: Missing user_id or friend_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friend-requests:
+    get:
+      summary: List incoming friend requests
+      operationId: getFriendRequests
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of incoming pending friend requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FriendRequestItem"
+        "400":
+          description: Missing user_id in context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friend-requests/{id}:
+    get:
+      summary: Check request status between two users
+      operationId: getFriendRequestByID
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the recipient (the user the request was sent to)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Existing friend request found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FriendRequest"
+        "400":
+          description: Missing user_id or recipient_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No request found between these users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Send a friend request
+      operationId: sendFriendRequest
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the recipient user
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Friend request sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendFriendRequestResponse"
+        "400":
+          description: Missing user_id or recipient_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Accept an incoming friend request
+      operationId: acceptFriendRequest
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the sender whose request you are accepting
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Friend request accepted
+        "400":
+          description: Missing user_id or sender_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friend-requests/outgoing/{id}:
+    delete:
+      summary: Cancel an outgoing friend request
+      operationId: cancelFriendRequest
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the recipient (the user you sent the request to)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Friend request cancelled
+        "400":
+          description: Missing user_id or recipient_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friend-requests/incoming/{id}:
+    delete:
+      summary: Reject an incoming friend request
+      operationId: rejectFriendRequest
+      tags:
+        - Friend Requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the sender whose request you are rejecting
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Friend request rejected
+        "400":
+          description: Missing user_id or sender_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     RegisterRequest:
       type: object
@@ -150,6 +453,73 @@ components:
           type: string
           format: date-time
           example: "2026-05-25T21:30:00Z"
+
+    FriendRequestItem:
+      type: object
+      properties:
+        sender_id:
+          type: string
+          format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        sender_username:
+          type: string
+          example: jdoe
+        sender_first_name:
+          type: string
+          example: John
+        sender_last_name:
+          type: string
+          example: Doe
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-06-01T12:00:00Z"
+
+    FriendRequest:
+      type: object
+      properties:
+        recipient_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        sender_id:
+          type: string
+          format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        status:
+          type: string
+          description: PENDING, ACCEPTED, or DECLINED
+          example: PENDING
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-06-01T12:00:00Z"
+
+    SendFriendRequestResponse:
+      type: object
+      properties:
+        recipient_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          example: PENDING
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-06-01T12:00:00Z"
+
+    RemoveFriendResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: friend successfully removed
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
 
     ErrorResponse:
       type: object

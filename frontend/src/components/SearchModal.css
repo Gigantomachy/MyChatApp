@@ -193,6 +193,17 @@
   border-color: var(--error);
 }
 
+.search-friend-badge {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--ocean-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .search-error {
   text-align: center;
   font-size: 13px;

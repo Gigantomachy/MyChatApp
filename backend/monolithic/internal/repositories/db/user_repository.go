@@ -72,7 +72,7 @@ func (r *UserRepository) FindByIDs(userIDs []gocql.UUID) ([]models.User, error) 
 	var users []models.User
 	var user models.User
 
-	for iter.Scan(&user.UserID, &user.FirstName, &user.LastName) {
+	for iter.Scan(&user.UserID, &user.Username, &user.FirstName, &user.LastName) {
 		users = append(users, user)
 	}
 

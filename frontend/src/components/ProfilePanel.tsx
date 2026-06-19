@@ -3,6 +3,7 @@ import { useUser } from '../context/UserContext'
 import {
   getFriends,
   getFriendRequests,
+  removeFriend,
   acceptFriendRequest,
   rejectFriendRequest,
   type BackendUser,
@@ -70,6 +71,16 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ onClose, onLogout }) => {
     }
   }
 
+  const handleUnfriend = async (friendId: string) => {
+    setActionError('')
+    try {
+      await removeFriend(friendId)
+      setFriends(prev => prev.filter(f => f.user_id !== friendId))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to unfriend')
+    }
+  }
+
   return (
     <>
       <div className="profile-overlay" onClick={onClose} />
@@ -107,6 +118,14 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ onClose, onLogout }) => {
                       <div className="profile-row-info">
                         <div className="profile-row-name">{f.first_name} {f.last_name}</div>
                         <div className="profile-row-meta">@{f.username}</div>
+                      </div>
+                      <div className="profile-row-actions">
+                        <button
+                          className="profile-btn profile-btn-reject"
+                          onClick={() => handleUnfriend(f.user_id)}
+                        >
+                          Unfriend
+                        </button>
                       </div>
                     </div>
                   ))}

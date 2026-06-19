@@ -70,9 +70,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
-  const nonFriends = allUsers.filter(u => !friendIds.has(u.user_id))
-
-  const filteredPeople = nonFriends.filter(u => {
+  const filteredPeople = allUsers.filter(u => {
     const fullName = `${u.first_name} ${u.last_name}`.toLowerCase()
     const handle = u.username.toLowerCase()
     const q = search.toLowerCase()
@@ -152,7 +150,10 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
               {!loading && !error && filteredPeople.length === 0 && (
                 <div className="search-empty">No people found.</div>
               )}
-              {!loading && filteredPeople.map(u => (
+              {!loading && filteredPeople.map(u => {
+                const isFriend = friendIds.has(u.user_id)
+                const isPending = pendingSent.has(u.user_id)
+                return (
                 <div key={u.user_id} className="search-row">
                   <div className="search-avatar">
                     {u.first_name[0]}{u.last_name[0]}
@@ -161,7 +162,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                     <div className="search-name">{u.first_name} {u.last_name}</div>
                     <div className="search-meta">@{u.username}</div>
                   </div>
-                  {pendingSent.has(u.user_id) ? (
+                  {isFriend ? (
+                    <span className="search-friend-badge">Friends</span>
+                  ) : isPending ? (
                     <button
                       className="search-action-btn search-action-btn--cancel"
                       onClick={() => handleCancel(u.user_id)}
@@ -177,7 +180,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
                     </button>
                   )}
                 </div>
-              ))}
+              )})}
             </>
           )}
         </div>

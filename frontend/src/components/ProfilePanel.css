@@ -8,7 +8,7 @@
   position: fixed;
   top: 52px;
   right: 12px;
-  width: 320px;
+  width: 340px;
   max-height: calc(100vh - 72px);
   background: var(--ocean-dark);
   border: 1px solid var(--ocean-border);
