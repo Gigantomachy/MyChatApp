@@ -36,28 +36,39 @@ CREATE TABLE friendships (
 
 -- Channel metadata lookup
 CREATE TABLE channels (
-    channel_id uuid,
-    name text,
-    type text,            -- 'public' | 'group' | 'dm'
-    created_by uuid,
-    member_ids set<uuid>,
-    created_at timestamp,
+    channel_id  uuid,
+    name        text,
+    type        text,            -- 'public' | 'group' | 'dm'
+    created_by  uuid,
+    created_at  timestamp,
     PRIMARY KEY (channel_id)
 );
 
--- "What channels am I in?" — single query for the sidebar
+-- "What channels am I in?" (sidebar) — partitioned by user
 CREATE TABLE channels_by_user (
-    user_id uuid,
-    channel_id uuid,
-    joined_at timestamp,
+    user_id       uuid,
+    channel_id    uuid,
+    channel_name  text,          -- denormalized so the sidebar is ONE read
+    channel_type  text,
+    joined_at     timestamp,
     PRIMARY KEY (user_id, channel_id)
+);
+
+-- "Who's in this channel?" (member list, fan-out) — partitioned by channel
+CREATE TABLE members_by_channel (
+    channel_id  uuid,
+    user_id     uuid,
+    role        text,            -- 'owner' | 'admin' | 'member'
+    joined_at   timestamp,
+    PRIMARY KEY (channel_id, user_id)
 );
 
 -- Recent messages in a channel
 CREATE TABLE messages_by_channel (
-    channel_id uuid,
-    message_id timeuuid,
-    author_id uuid,
-    content text,
-    PRIMARY KEY (channel_id, message_id)
+    channel_id  uuid,
+    bucket      int,             -- e.g. 20260618 (UTC day)
+    message_id  timeuuid,        -- carries time + ordering + uniqueness
+    author_id   uuid,
+    content     text,
+    PRIMARY KEY ((channel_id, bucket), message_id)
 ) WITH CLUSTERING ORDER BY (message_id DESC);
