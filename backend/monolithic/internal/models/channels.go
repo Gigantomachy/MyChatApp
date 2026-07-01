@@ -20,6 +20,12 @@ type ChannelMembership struct {
 	JoinedAt    time.Time  `json:"joined_at"`
 }
 
+type Member struct {
+	UserID   gocql.UUID `json:"user_id"`
+	Role     string     `json:"role"`
+	JoinedAt time.Time  `json:"joined_at"`
+}
+
 type Message struct {
 	ChannelID gocql.UUID `json:"channel_id"`
 	Bucket    int        `json:"-"`          // partition key, not exposed - UTC day as an integer to prevent giant channels from forming hot partitions

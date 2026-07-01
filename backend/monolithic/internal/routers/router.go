@@ -15,6 +15,7 @@ type RouterDependencies struct {
 	UserController   *controllers.UserController
 
 	// add channel controller later
+	ChannelController *controllers.ChannelsController
 }
 
 type Router struct {
@@ -63,6 +64,15 @@ func (r *Router) Setup() *gin.Engine {
 			api.PUT("/friend-requests/:id", r.FriendController.AcceptFriendRequest)
 			api.DELETE("/friend-requests/outgoing/:id", r.FriendController.CancelFriendRequest)
 			api.DELETE("/friend-requests/incoming/:id", r.FriendController.RejectFriendRequest)
+
+			api.GET("/channels/discover", r.ChannelController.GetAllChannels)
+			api.GET("/channels", r.ChannelController.GetChannelsByUser)
+			api.GET("/channels/:id", r.ChannelController.GetChannelUsersAndInformation)
+			api.POST("/channels", r.ChannelController.CreateChannel)
+			api.POST("/channels/:id", r.ChannelController.CreateChannelMembership)
+			api.PUT("/channels/:id", r.ChannelController.ModifyChannelMembership)
+			api.DELETE("/channels/:id", r.ChannelController.DeleteChannel)
+			api.DELETE("/channels/:id/membership", r.ChannelController.DeleteChannelMembership)
 		}
 	}
 

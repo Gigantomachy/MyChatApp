@@ -35,10 +35,15 @@ func main() {
 
 	userController := controllers.NewUserController(userService)
 
+	channelsRepo := db.NewChannelsRepository(session)
+	channelsService := services.NewChannelService(channelsRepo, userRepo)
+	channelsController := controllers.NewChannelsController(channelsService)
+
 	r := routers.NewRouter(routers.RouterDependencies{
-		AuthController:   authController,
-		FriendController: friendController,
-		UserController:   userController,
+		AuthController:    authController,
+		FriendController:  friendController,
+		UserController:    userController,
+		ChannelController: channelsController,
 	})
 
 	engine := r.Setup()

@@ -106,6 +106,22 @@ func (c *ChannelsRepository) GetMembersByChannel(chn_id gocql.UUID) ([]gocql.UUI
 	return users, nil
 }
 
+func (c *ChannelsRepository) GetMemberRole(channel_id, user_id string) (string, error) {
+	iter := c.session.Query(
+		"SELECT role FROM members_by_channel WHERE channel_id = ? AND user_id = ?",
+		channel_id, user_id,
+	).Iter()
+
+	var role string
+	iter.Scan(&role)
+
+	if err := iter.Close(); err != nil {
+		return "", err
+	}
+
+	return role, nil
+}
+
 func (c *ChannelsRepository) CreateChannel(chn *models.Channel) error {
 	//return c.session.Query(
 	//	"INSERT INTO channels (channel_id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
