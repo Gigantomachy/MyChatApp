@@ -172,6 +172,22 @@ func (f *FriendshipRepository) GetFriendships(user_id gocql.UUID) ([]models.Frie
 	return friendships, nil
 }
 
+// Helper function to check for single friendship
+func (f *FriendshipRepository) IsFriend(user_id, friend_id gocql.UUID) (*models.FriendShip, error) {
+	var friendship models.FriendShip
+
+	err := f.session.Query(
+		"SELECT user_id, friend_id, created_at FROM friendships WHERE user_id = ? AND friend_id = ?",
+		user_id, friend_id,
+	).Scan(&friendship.UserID, &friendship.FriendID, &friendship.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &friendship, nil
+}
+
 // delete friendship (un-friend)
 func (f *FriendshipRepository) DeleteFriendship(user_id, friend_id gocql.UUID) error {
 	batch := f.session.NewBatch(gocql.LoggedBatch)

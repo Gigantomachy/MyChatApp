@@ -3,21 +3,31 @@ package services
 import (
 	"MyChatApp/monolithic/internal/models"
 	"MyChatApp/monolithic/internal/repositories/db"
-	"errors"
 	"time"
 
 	"github.com/gocql/gocql"
 )
 
+// TODO: refactor and put this somewhere more appropriate - like a shared errors package
+type RequestError struct {
+	Message string
+}
+
+func (e *RequestError) Error() string {
+	return e.Message
+}
+
 type ChannelService struct {
 	channelsRepo *db.ChannelsRepository
 	usersRepo    *db.UserRepository
+	friendsRepo  *db.FriendshipRepository
 }
 
-func NewChannelService(r *db.ChannelsRepository, u *db.UserRepository) *ChannelService {
+func NewChannelService(r *db.ChannelsRepository, u *db.UserRepository, f *db.FriendshipRepository) *ChannelService {
 	return &ChannelService{
 		channelsRepo: r,
 		usersRepo:    u,
+		friendsRepo:  f,
 	}
 }
 
@@ -57,7 +67,9 @@ func (c *ChannelService) GetUsersByChannel(chn_id string) ([]models.User, error)
 	return c.usersRepo.FindByIDs(userIDs)
 }
 
-func (c *ChannelService) CreateChannel(creator_id, name, _type string) (*models.Channel, error) {
+func (c *ChannelService) CreateChannel(member_ids []string, creator_id, name, _type string) (*models.Channel, error) {
+	// TODO: Right now frontend needs to make subsequent calls in order to actually add the channel memberships of the friends
+
 	cid, err := gocql.RandomUUID()
 	if err != nil {
 		return nil, err
@@ -76,8 +88,23 @@ func (c *ChannelService) CreateChannel(creator_id, name, _type string) (*models.
 		CreatedAt: time.Now(),
 	}
 
-	err = c.channelsRepo.CreateChannel(&chn)
-	if err != nil {
+	if _type == "dm" {
+		if len(member_ids) == 0 {
+			return nil, &RequestError{Message: "DM requires a member"}
+		}
+
+		fid, err := gocql.ParseUUID(member_ids[0])
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = c.friendsRepo.IsFriend(creatorID, fid)
+		if err != nil {
+			return nil, &RequestError{Message: "Must be friends to start a DM"}
+		}
+	}
+
+	if err := c.channelsRepo.CreateChannel(&chn); err != nil {
 		return nil, err
 	}
 
@@ -132,6 +159,17 @@ func (c *ChannelService) ModifyChannelMembership(user_id, channel_id, role strin
 		return err
 	}
 
+	oldRole, err := c.channelsRepo.GetMemberRole(cid, uid)
+	if oldRole != "owner" && role == "owner" {
+		return &RequestError{
+			Message: "Must be the owner to set member role to owner",
+		}
+	} else if role == "admin" && !(oldRole == "admin" || oldRole == "owner") {
+		return &RequestError{
+			Message: "Must be the owner or an admin to set role to admin",
+		}
+	}
+
 	chnMem := models.ChannelMembership{
 		ChannelID:   cid,
 		ChannelName: chn.Name,
@@ -143,18 +181,27 @@ func (c *ChannelService) ModifyChannelMembership(user_id, channel_id, role strin
 }
 
 func (c *ChannelService) DeleteChannel(user_id, channel_id string) error {
+	// for now - this doesnt clean up memberships
+
 	cid, err := gocql.ParseUUID(channel_id)
 	if err != nil {
 		return err
 	}
 
-	role, err := c.channelsRepo.GetMemberRole(channel_id, user_id)
+	uid, err := gocql.ParseUUID(user_id)
+	if err != nil {
+		return err
+	}
+
+	role, err := c.channelsRepo.GetMemberRole(cid, uid)
 	if err != nil {
 		return err
 	}
 
 	if role != "owner" {
-		return errors.New("Only owners can delete channels")
+		return &RequestError{
+			Message: "Only owners can delete channels",
+		}
 	}
 
 	return c.channelsRepo.DeleteChannel(cid)

@@ -38,7 +38,7 @@ CREATE TABLE friendships (
 CREATE TABLE channels (
     channel_id  uuid,
     name        text,
-    type        text,            -- 'public' | 'group' | 'dm'
+    type        text,            -- 'public' | 'dm'
     created_by  uuid,
     created_at  timestamp,
     PRIMARY KEY (channel_id)

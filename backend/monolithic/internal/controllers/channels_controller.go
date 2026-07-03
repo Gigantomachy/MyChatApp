@@ -2,15 +2,18 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gocql/gocql"
 )
 
 // TODO: replace with DTO later
 type ChannelPayload struct {
-	ChannelName string `json:"channel_name"`
-	ChannelType string `json:"channel_type"`
+	ChannelName string   `json:"channel_name"`
+	ChannelType string   `json:"channel_type"`
+	Members     []string `json:"members"`
 }
 
 type ChannelsController struct {
@@ -57,6 +60,11 @@ func (cc *ChannelsController) GetChannelUsersAndInformation(c *gin.Context) {
 
 	chn_info, err := cc.channelService.GetChannelByID(cid)
 	if err != nil {
+		if errors.Is(err, gocql.ErrNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -64,6 +72,11 @@ func (cc *ChannelsController) GetChannelUsersAndInformation(c *gin.Context) {
 	// TODO: replace with user DTO later ?
 	users, err := cc.channelService.GetUsersByChannel(cid)
 	if err != nil {
+		if errors.Is(err, gocql.ErrNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -93,7 +106,7 @@ func (cc *ChannelsController) CreateChannel(c *gin.Context) {
 		return
 	}
 
-	chn, err := cc.channelService.CreateChannel(uid.(string), payload.ChannelName, payload.ChannelType)
+	chn, err := cc.channelService.CreateChannel(payload.Members, uid.(string), payload.ChannelName, payload.ChannelType)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -142,6 +155,12 @@ func (cc *ChannelsController) ModifyChannelMembership(c *gin.Context) {
 
 	err := cc.channelService.ModifyChannelMembership(uid.(string), cid, payload.Role)
 	if err != nil {
+		var reqErr *services.RequestError
+		if errors.As(err, &reqErr) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -161,6 +180,12 @@ func (cc *ChannelsController) DeleteChannel(c *gin.Context) {
 
 	err := cc.channelService.DeleteChannel(uid.(string), cid)
 	if err != nil {
+		var reqErr *services.RequestError
+		if errors.As(err, &reqErr) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

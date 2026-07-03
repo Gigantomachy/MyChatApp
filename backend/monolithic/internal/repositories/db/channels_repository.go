@@ -106,16 +106,15 @@ func (c *ChannelsRepository) GetMembersByChannel(chn_id gocql.UUID) ([]gocql.UUI
 	return users, nil
 }
 
-func (c *ChannelsRepository) GetMemberRole(channel_id, user_id string) (string, error) {
-	iter := c.session.Query(
+func (c *ChannelsRepository) GetMemberRole(channel_id, user_id gocql.UUID) (string, error) {
+	var role string
+
+	err := c.session.Query(
 		"SELECT role FROM members_by_channel WHERE channel_id = ? AND user_id = ?",
 		channel_id, user_id,
-	).Iter()
+	).Scan(&role)
 
-	var role string
-	iter.Scan(&role)
-
-	if err := iter.Close(); err != nil {
+	if err != nil {
 		return "", err
 	}
 
@@ -167,8 +166,8 @@ func (c *ChannelsRepository) CreateChannelMembership(user_id gocql.UUID, chn *mo
 // modify channel membership - only useful for changing owners / admins ?
 func (c *ChannelsRepository) ModifyChannelMembership(user_id gocql.UUID, chn *models.ChannelMembership, role string) error {
 	return c.session.Query(
-		"INSERT into members_by_channel (channel_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)",
-		chn.ChannelID, user_id, role, chn.JoinedAt,
+		"UPDATE members_by_channel SET role = ? WHERE channel_id = ? AND user_id = ?",
+		role, chn.ChannelID, user_id,
 	).Exec()
 }
 

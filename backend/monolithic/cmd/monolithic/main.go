@@ -36,7 +36,7 @@ func main() {
 	userController := controllers.NewUserController(userService)
 
 	channelsRepo := db.NewChannelsRepository(session)
-	channelsService := services.NewChannelService(channelsRepo, userRepo)
+	channelsService := services.NewChannelService(channelsRepo, userRepo, friendRepo)
 	channelsController := controllers.NewChannelsController(channelsService)
 
 	r := routers.NewRouter(routers.RouterDependencies{
