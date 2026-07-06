@@ -3,6 +3,8 @@ package services
 import (
 	"MyChatApp/monolithic/internal/models"
 	"MyChatApp/monolithic/internal/repositories/db"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -68,8 +70,6 @@ func (c *ChannelService) GetUsersByChannel(chn_id string) ([]models.User, error)
 }
 
 func (c *ChannelService) CreateChannel(member_ids []string, creator_id, name, _type string) (*models.Channel, error) {
-	// TODO: Right now frontend needs to make subsequent calls in order to actually add the channel memberships of the friends
-
 	cid, err := gocql.RandomUUID()
 	if err != nil {
 		return nil, err
@@ -93,15 +93,40 @@ func (c *ChannelService) CreateChannel(member_ids []string, creator_id, name, _t
 			return nil, &RequestError{Message: "DM requires a member"}
 		}
 
-		fid, err := gocql.ParseUUID(member_ids[0])
+		friendID, err := gocql.ParseUUID(member_ids[0])
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = c.friendsRepo.IsFriend(creatorID, fid)
+		_, err = c.friendsRepo.IsFriend(creatorID, friendID)
 		if err != nil {
 			return nil, &RequestError{Message: "Must be friends to start a DM"}
 		}
+
+		existing, err := c.findExistingDM(creatorID, friendID)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil {
+			return existing, nil
+		}
+
+		creator, err := c.usersRepo.FindByID(creatorID)
+		if err != nil {
+			return nil, err
+		}
+		friend, err := c.usersRepo.FindByID(friendID)
+		if err != nil {
+			return nil, err
+		}
+
+		creatorName := fmt.Sprintf("%s %s", creator.FirstName, creator.LastName)
+		friendName := fmt.Sprintf("%s %s", friend.FirstName, friend.LastName)
+
+		if err := c.channelsRepo.CreateDMChannel(&chn, creatorID, friendID, creatorName, friendName); err != nil {
+			return nil, err
+		}
+		return &chn, nil
 	}
 
 	if err := c.channelsRepo.CreateChannel(&chn); err != nil {
@@ -220,4 +245,28 @@ func (c *ChannelService) DeleteChannelMembership(user_id, channel_id string) err
 	}
 
 	return c.channelsRepo.DeleteChannelMembership(uid, cid)
+}
+
+// helper function to see if a dm already exists
+func (c *ChannelService) findExistingDM(user1, user2 gocql.UUID) (*models.Channel, error) {
+	memberships, err := c.channelsRepo.GetChannelsByUser(user1)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, m := range memberships {
+		if m.ChannelType != "dm" {
+			continue
+		}
+
+		_, err := c.channelsRepo.GetMemberRole(m.ChannelID, user2)
+		if err == nil {
+			return c.channelsRepo.GetChannelByID(m.ChannelID)
+		}
+		if !errors.Is(err, gocql.ErrNotFound) {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }

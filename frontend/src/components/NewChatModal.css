@@ -158,3 +158,12 @@
 .new-chat-start:hover:not(:disabled) {
   opacity: 0.9;
 }
+
+.new-chat-dm-label {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--ocean-border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}

@@ -108,6 +108,12 @@ func (cc *ChannelsController) CreateChannel(c *gin.Context) {
 
 	chn, err := cc.channelService.CreateChannel(payload.Members, uid.(string), payload.ChannelName, payload.ChannelType)
 	if err != nil {
+		var reqErr *services.RequestError
+		if errors.As(err, &reqErr) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

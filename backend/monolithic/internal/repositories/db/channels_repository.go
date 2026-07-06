@@ -122,11 +122,6 @@ func (c *ChannelsRepository) GetMemberRole(channel_id, user_id gocql.UUID) (stri
 }
 
 func (c *ChannelsRepository) CreateChannel(chn *models.Channel) error {
-	//return c.session.Query(
-	//	"INSERT INTO channels (channel_id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
-	//	chn.ChannelID, chn.Name, chn.Type, chn.CreatedBy, chn.CreatedAt,
-	//).Exec()
-
 	batch := c.session.NewBatch(gocql.LoggedBatch)
 
 	batch.Query(
@@ -142,6 +137,39 @@ func (c *ChannelsRepository) CreateChannel(chn *models.Channel) error {
 	batch.Query(
 		"INSERT into members_by_channel (channel_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)",
 		chn.ChannelID, chn.CreatedBy, "owner", chn.CreatedAt,
+	)
+
+	return c.session.ExecuteBatch(batch)
+}
+
+// CreateDMChannel creates a DM channel with both members in one atomic batch
+// creatorName is what the friend sees, friendName is what the creator sees
+func (c *ChannelsRepository) CreateDMChannel(chn *models.Channel, creatorID, friendID gocql.UUID, creatorName, friendName string) error {
+	batch := c.session.NewBatch(gocql.LoggedBatch)
+
+	batch.Query(
+		"INSERT INTO channels (channel_id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
+		chn.ChannelID, chn.Name, chn.Type, chn.CreatedBy, chn.CreatedAt,
+	)
+
+	batch.Query(
+		"INSERT into channels_by_user (user_id, channel_id, channel_name, channel_type, joined_at) VALUES (?, ?, ?, ?, ?)",
+		creatorID, chn.ChannelID, friendName, chn.Type, chn.CreatedAt,
+	)
+
+	batch.Query(
+		"INSERT into channels_by_user (user_id, channel_id, channel_name, channel_type, joined_at) VALUES (?, ?, ?, ?, ?)",
+		friendID, chn.ChannelID, creatorName, chn.Type, chn.CreatedAt,
+	)
+
+	batch.Query(
+		"INSERT into members_by_channel (channel_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)",
+		chn.ChannelID, creatorID, "owner", chn.CreatedAt,
+	)
+
+	batch.Query(
+		"INSERT into members_by_channel (channel_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)",
+		chn.ChannelID, friendID, "member", chn.CreatedAt,
 	)
 
 	return c.session.ExecuteBatch(batch)

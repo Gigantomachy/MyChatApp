@@ -55,3 +55,11 @@
   display: flex;
   overflow: hidden;
 }
+
+.chat-layout-error {
+  padding: 8px 20px;
+  background: var(--error);
+  color: var(--ocean-deep);
+  font-size: 13px;
+  font-weight: 500;
+}

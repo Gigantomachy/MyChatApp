@@ -1,0 +1,109 @@
+.create-channel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.create-channel-modal {
+  background: var(--ocean-dark);
+  border: 1px solid var(--ocean-border);
+  border-radius: 8px;
+  width: 380px;
+  max-width: 90vw;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.create-channel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ocean-border);
+}
+
+.create-channel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.create-channel-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.create-channel-close:hover {
+  color: var(--text-primary);
+}
+
+.create-channel-form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-channel-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.create-channel-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--ocean-border);
+  border-radius: 6px;
+  background: var(--ocean-deep);
+  overflow: hidden;
+}
+
+.create-channel-prefix {
+  padding: 0 4px 0 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.create-channel-input {
+  flex: 1;
+  padding: 8px 10px 8px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.create-channel-input::placeholder {
+  color: var(--text-muted);
+}
+
+.create-channel-error {
+  font-size: 13px;
+  color: var(--error);
+}
+
+.create-channel-btn {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--aqua-accent);
+  color: var(--ocean-deep);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.create-channel-btn:hover {
+  opacity: 0.9;
+}

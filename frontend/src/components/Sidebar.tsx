@@ -1,52 +1,40 @@
 import React from 'react'
-import { channels, users } from '../data/database'
 import { useUser } from '../context/UserContext'
+import type { ChannelMembership } from '../api/client'
 import './Sidebar.css'
 
 interface SidebarProps {
+  channels: ChannelMembership[]
   selectedChannelId: string | null
   onSelectChannel: (channelId: string) => void
   onStartNewChat: () => void
+  onCreateChannel: () => void
   onOpenSearch: () => void
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
+  channels,
   selectedChannelId,
   onSelectChannel,
   onStartNewChat,
+  onCreateChannel,
   onOpenSearch,
 }) => {
   const currentUser = useUser()
-  const userId = currentUser.user_id
 
-  const publicChannels = channels.filter(
-    ch => ch.type === 'public' && ch.memberIds.includes(userId)
-  )
+  const publicChannels = channels.filter(ch => ch.channel_type === 'public')
+  const dmChannels = channels.filter(ch => ch.channel_type === 'dm' || ch.channel_type === 'group')
 
-  const dmChannels = channels.filter(
-    ch => (ch.type === 'dm' || ch.type === 'group') && ch.memberIds.includes(userId)
-  )
-
-  const getDmLabel = (ch: typeof channels[0]) => {
-    const otherIds = ch.memberIds.filter(id => id !== userId)
-    if (otherIds.length === 0) return ch.name
-    const names = otherIds.map(id => {
-      const u = users.find(user => user.id === id)
-      return u ? `${u.firstName} ${u.lastName}` : null
-    }).filter(Boolean) as string[]
-    return names.length > 0 ? names.join(', ') : ch.name
-  }
-
-  const renderChannelItem = (ch: typeof channels[0], label: string) => {
-    const isActive = selectedChannelId === ch.id
+  const renderChannelItem = (ch: ChannelMembership, label: string) => {
+    const isActive = selectedChannelId === ch.channel_id
     return (
       <div
-        key={ch.id}
-        onClick={() => onSelectChannel(ch.id)}
+        key={ch.channel_id}
+        onClick={() => onSelectChannel(ch.channel_id)}
         className={`sidebar-channel ${isActive ? 'sidebar-channel--active' : ''}`}
       >
         <span className="sidebar-channel-icon">
-          {ch.type === 'public' ? '#' : '@'}
+          {ch.channel_type === 'public' ? '#' : '@'}
         </span>
         <span className="sidebar-channel-name">{label}</span>
       </div>
@@ -82,8 +70,22 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="sidebar-scroll">
         <div className="sidebar-section">
-          <div className="sidebar-section-title">Channels</div>
-          {publicChannels.map(ch => renderChannelItem(ch, ch.name))}
+          <div className="sidebar-section-header">
+            <div className="sidebar-section-title">Channels</div>
+            <button
+              className="sidebar-new-chat-btn"
+              onClick={onCreateChannel}
+              aria-label="Create channel"
+              title="Create channel"
+            >
+              +
+            </button>
+          </div>
+          {publicChannels.length === 0 ? (
+            <div className="sidebar-empty">No channels joined</div>
+          ) : (
+            publicChannels.map(ch => renderChannelItem(ch, ch.channel_name))
+          )}
         </div>
 
         <div className="sidebar-section">
@@ -98,7 +100,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               +
             </button>
           </div>
-          {dmChannels.map(ch => renderChannelItem(ch, getDmLabel(ch)))}
+          {dmChannels.length === 0 ? (
+            <div className="sidebar-empty">No direct messages</div>
+          ) : (
+            dmChannels.map(ch => renderChannelItem(ch, ch.channel_name))
+          )}
         </div>
       </div>
     </div>

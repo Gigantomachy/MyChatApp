@@ -156,3 +156,63 @@ export function cancelFriendRequest(recipientId: string): Promise<void> {
 export function rejectFriendRequest(senderId: string): Promise<void> {
   return request<void>('DELETE', `/api/friend-requests/incoming/${senderId}`)
 }
+
+// --- Channels ---
+
+export interface Channel {
+  channel_id: string
+  name: string
+  type: string
+  created_by: string
+  created_at: string
+}
+
+export interface ChannelMembership {
+  channel_id: string
+  channel_name: string
+  channel_type: string
+  joined_at: string
+}
+
+export interface ChannelDetails {
+  channel_id: string
+  channel_name: string
+  channel_type: string
+  created_by: string
+  created_at: string
+  users: BackendUser[]
+}
+
+export interface CreateChannelRequest {
+  channel_name?: string
+  channel_type: string
+  members?: string[]
+}
+
+export function getMyChannels(): Promise<ChannelMembership[]> {
+  return request<ChannelMembership[]>('GET', '/api/channels')
+}
+
+export function getAllChannels(): Promise<Channel[]> {
+  return request<Channel[]>('GET', '/api/channels/discover')
+}
+
+export function getChannelByID(id: string): Promise<ChannelDetails> {
+  return request<ChannelDetails>('GET', `/api/channels/${id}`)
+}
+
+export function createChannel(body: CreateChannelRequest): Promise<Channel> {
+  return request<Channel>('POST', '/api/channels', body)
+}
+
+export function joinChannel(id: string): Promise<ChannelMembership> {
+  return request<ChannelMembership>('POST', `/api/channels/${id}`)
+}
+
+export function leaveChannel(id: string): Promise<void> {
+  return request<void>('DELETE', `/api/channels/${id}/membership`)
+}
+
+export function deleteChannel(id: string): Promise<void> {
+  return request<void>('DELETE', `/api/channels/${id}`)
+}

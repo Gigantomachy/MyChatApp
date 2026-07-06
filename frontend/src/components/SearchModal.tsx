@@ -6,20 +6,25 @@ import {
   getFriendRequestByID,
   sendFriendRequest,
   cancelFriendRequest,
+  getAllChannels,
   type BackendUser,
+  type Channel,
 } from '../api/client'
 import './SearchModal.css'
 
 interface SearchModalProps {
   isOpen: boolean
   onClose: () => void
+  onJoinChannel: (channelId: string) => void
+  myChannelIds: Set<string>
 }
 
-const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
+const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onJoinChannel, myChannelIds }) => {
   const currentUser = useUser()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'channels' | 'people'>('channels')
   const [allUsers, setAllUsers] = useState<BackendUser[]>([])
+  const [allChannels, setAllChannels] = useState<Channel[]>([])
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
   const [pendingSent, setPendingSent] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -30,9 +35,14 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     setLoading(true)
     setError('')
     try {
-      const [users, friends] = await Promise.all([searchUsers(), getFriends()])
+      const [users, friends, channels] = await Promise.all([
+        searchUsers(),
+        getFriends(),
+        getAllChannels(),
+      ])
       setAllUsers(users.filter(u => u.user_id !== currentUser.user_id))
       setFriendIds(new Set(friends.map(f => f.user_id)))
+      setAllChannels(channels ?? [])
 
       const pending = new Set<string>()
       const checks = users
@@ -50,7 +60,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
       await Promise.allSettled(checks)
       setPendingSent(pending)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users')
+      setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -75,6 +85,11 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     const handle = u.username.toLowerCase()
     const q = search.toLowerCase()
     return fullName.includes(q) || handle.includes(q)
+  })
+
+  const filteredChannels = allChannels.filter(ch => {
+    const q = search.toLowerCase()
+    return ch.type === 'public' && ch.name.toLowerCase().includes(q)
   })
 
   const handleAddFriend = async (recipientId: string) => {
@@ -139,7 +154,36 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
 
         <div className="search-list">
           {activeTab === 'channels' && (
-            <div className="search-empty">Channel search not yet available.</div>
+            <>
+              {actionError && <div className="search-error">{actionError}</div>}
+              {error && <div className="search-error">{error}</div>}
+              {loading && <div className="search-empty">Loading...</div>}
+              {!loading && !error && filteredChannels.length === 0 && (
+                <div className="search-empty">No channels found.</div>
+              )}
+              {!loading && filteredChannels.map(ch => {
+                const joined = myChannelIds.has(ch.channel_id)
+                return (
+                  <div key={ch.channel_id} className="search-row">
+                    <div className="search-row-icon">#</div>
+                    <div className="search-info">
+                      <div className="search-name">{ch.name}</div>
+                      <div className="search-meta">{ch.type}</div>
+                    </div>
+                    {joined ? (
+                      <span className="search-friend-badge">Joined</span>
+                    ) : (
+                      <button
+                        className="search-action-btn"
+                        onClick={() => onJoinChannel(ch.channel_id)}
+                      >
+                        Join
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </>
           )}
 
           {activeTab === 'people' && (
