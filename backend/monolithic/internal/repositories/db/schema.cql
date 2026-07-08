@@ -72,3 +72,14 @@ CREATE TABLE messages_by_channel (
     content     text,
     PRIMARY KEY ((channel_id, bucket), message_id)
 ) WITH CLUSTERING ORDER BY (message_id DESC);
+
+
+CREATE TABLE messages_by_channel (
+    channel_id  uuid,
+    bucket      int,
+    created_at  timestamp,
+    message_id  uuid,
+    author_id   uuid,
+    content     text,
+    PRIMARY KEY ((channel_id, bucket), created_at, message_id)
+) WITH CLUSTERING ORDER BY (created_at DESC, message_id ASC);

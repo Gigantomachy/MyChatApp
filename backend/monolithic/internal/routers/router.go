@@ -10,12 +10,11 @@ import (
 
 // use a dependencies struct to avoid having to pass a million constructor arguments
 type RouterDependencies struct {
-	AuthController   *controllers.AuthController
-	FriendController *controllers.FriendController
-	UserController   *controllers.UserController
-
-	// add channel controller later
+	AuthController    *controllers.AuthController
+	FriendController  *controllers.FriendController
+	UserController    *controllers.UserController
 	ChannelController *controllers.ChannelsController
+	MessageController *controllers.MessagesController
 }
 
 type Router struct {
@@ -73,6 +72,9 @@ func (r *Router) Setup() *gin.Engine {
 			api.PUT("/channels/:id", r.ChannelController.ModifyChannelMembership)
 			api.DELETE("/channels/:id", r.ChannelController.DeleteChannel)
 			api.DELETE("/channels/:id/membership", r.ChannelController.DeleteChannelMembership)
+
+			api.GET("/channels/:id/messages", r.MessageController.GetMessages)
+			api.POST("/channels/:id/messages", r.MessageController.SendMessage)
 		}
 	}
 

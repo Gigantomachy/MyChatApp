@@ -28,8 +28,9 @@ type Member struct {
 
 type Message struct {
 	ChannelID gocql.UUID `json:"channel_id"`
-	Bucket    int        `json:"-"`          // partition key, not exposed - UTC day as an integer to prevent giant channels from forming hot partitions
-	MessageID gocql.UUID `json:"message_id"` // timeuuid
+	Bucket    int        `json:"-"`
+	MessageID gocql.UUID `json:"message_id"`
 	AuthorID  gocql.UUID `json:"author_id"`
 	Content   string     `json:"content"`
+	CreatedAt time.Time  `json:"created_at"`
 }
