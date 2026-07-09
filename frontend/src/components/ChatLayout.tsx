@@ -119,7 +119,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ onLogout }) => {
           onCreateChannel={() => setIsCreateChannelOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
-        <ChatArea channelId={selectedChannelId ?? ''} />
+        <ChatArea
+          channel={channels.find(c => c.channel_id === selectedChannelId) ?? null}
+        />
 
         <NewChatModal
           isOpen={isNewChatOpen}

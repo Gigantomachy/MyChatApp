@@ -49,6 +49,20 @@
   gap: 14px;
 }
 
+.chat-messages-info {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 20px;
+}
+
+.chat-messages-error {
+  text-align: center;
+  color: var(--error);
+  font-size: 14px;
+  padding: 20px;
+}
+
 .message {
   display: flex;
   gap: 10px;

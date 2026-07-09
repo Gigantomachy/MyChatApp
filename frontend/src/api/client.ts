@@ -216,3 +216,27 @@ export function leaveChannel(id: string): Promise<void> {
 export function deleteChannel(id: string): Promise<void> {
   return request<void>('DELETE', `/api/channels/${id}`)
 }
+
+// --- Messages ---
+
+export interface MessageItem {
+  message_id: string
+  author_id: string
+  author_first_name: string
+  author_last_name: string
+  author_username: string
+  content: string
+  created_at: string
+}
+
+export function getMessages(channelId: string, limit?: number, before?: string): Promise<MessageItem[]> {
+  const params = new URLSearchParams()
+  if (limit) params.set('limit', String(limit))
+  if (before) params.set('before', before)
+  const qs = params.toString() ? `?${params.toString()}` : ''
+  return request<MessageItem[]>('GET', `/api/channels/${channelId}/messages${qs}`)
+}
+
+export function sendMessage(channelId: string, content: string): Promise<MessageItem> {
+  return request<MessageItem>('POST', `/api/channels/${channelId}/messages`, { content })
+}

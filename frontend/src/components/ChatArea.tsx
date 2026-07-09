@@ -1,43 +1,63 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { channels, users, messages as allMessages } from '../data/database'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useUser } from '../context/UserContext'
-import type { Message } from '../data/database'
+import {
+  getMessages,
+  sendMessage as apiSendMessage,
+  type ChannelMembership,
+  type MessageItem,
+} from '../api/client'
 import './ChatArea.css'
 
 interface ChatAreaProps {
-  channelId: string
+  channel: ChannelMembership | null
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({ channelId }) => {
+const ChatArea: React.FC<ChatAreaProps> = ({ channel }) => {
   const currentUser = useUser()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<MessageItem[]>([])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const channel = channels.find(c => c.id === channelId)
+  const fetchMessages = useCallback(async (channelId: string) => {
+    setLoading(true)
+    setError('')
+    try {
+      const msgs = await getMessages(channelId)
+      setMessages((msgs ?? []).reverse())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load messages')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const channelMessages = allMessages
-      .filter(m => m.channelId === channelId)
-      .sort((a, b) => a.timestamp - b.timestamp)
-    setMessages(channelMessages)
-  }, [channelId])
+    if (channel) {
+      fetchMessages(channel.channel_id)
+    } else {
+      setMessages([])
+    }
+  }, [channel, fetchMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSend = () => {
-    if (!input.trim()) return
-    const newMsg: Message = {
-      id: `local-${Date.now()}`,
-      channelId,
-      authorId: currentUser.user_id,
-      content: input.trim(),
-      timestamp: Date.now(),
+  const handleSend = async () => {
+    if (!input.trim() || !channel || sending) return
+    setSending(true)
+    try {
+      const msg = await apiSendMessage(channel.channel_id, input.trim())
+      setMessages(prev => [...prev, msg])
+      setInput('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message')
+    } finally {
+      setSending(false)
     }
-    setMessages(prev => [...prev, newMsg])
-    setInput('')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -47,10 +67,20 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channelId }) => {
     }
   }
 
-  const formatTime = (ts: number) => {
-    const d = new Date(ts)
+  const formatTime = (iso: string) => {
+    const d = new Date(iso)
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
+
+  const getAuthorName = (msg: MessageItem) => {
+    return `${msg.author_first_name} ${msg.author_last_name}`
+  }
+
+  const getInitials = (msg: MessageItem) => {
+    return `${msg.author_first_name[0] ?? ''}${msg.author_last_name[0] ?? ''}`
+  }
+
+  const isCurrentUser = (authorId: string) => authorId === currentUser.user_id
 
   if (!channel) {
     return (
@@ -60,49 +90,42 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channelId }) => {
     )
   }
 
-  const getAuthorName = (authorId: string) => {
-    if (authorId === currentUser.user_id) {
-      return `${currentUser.first_name} ${currentUser.last_name}`
-    }
-    const u = users.find(user => user.id === authorId)
-    return u ? `${u.firstName} ${u.lastName}` : 'Unknown'
-  }
-
-  const isCurrentUser = (authorId: string) => authorId === currentUser.user_id
-
   return (
     <div className="chat-area">
       <div className="chat-area-header">
         <span className="chat-area-header-icon">
-          {channel.type === 'public' ? '#' : channel.type === 'group' ? '◆' : '@'}
+          {channel.channel_type === 'public' ? '#' : '@'}
         </span>
-        <span className="chat-area-header-name">{channel.name}</span>
-        <span className="chat-area-header-meta">
-          {channel.memberIds.length} members
-        </span>
+        <span className="chat-area-header-name">{channel.channel_name}</span>
       </div>
 
       <div className="chat-messages">
-        {messages.map(msg => (
+        {loading && (
+          <div className="chat-messages-info">Loading messages...</div>
+        )}
+        {error && (
+          <div className="chat-messages-error">{error}</div>
+        )}
+        {!loading && !error && messages.length === 0 && (
+          <div className="chat-messages-info">No messages yet. Say hello!</div>
+        )}
+        {!loading && messages.map(msg => (
           <div
-            key={msg.id}
-            className={`message ${isCurrentUser(msg.authorId) ? 'message--self' : 'message--other'}`}
+            key={msg.message_id}
+            className={`message ${isCurrentUser(msg.author_id) ? 'message--self' : 'message--other'}`}
           >
             <div
-              className={`message-avatar ${isCurrentUser(msg.authorId) ? 'message-avatar--self' : 'message-avatar--other'}`}
+              className={`message-avatar ${isCurrentUser(msg.author_id) ? 'message-avatar--self' : 'message-avatar--other'}`}
             >
-              {getAuthorName(msg.authorId)
-                .split(' ')
-                .map(n => n[0])
-                .join('')}
+              {getInitials(msg)}
             </div>
 
             <div
-              className={`message-bubble ${isCurrentUser(msg.authorId) ? 'message-bubble--self' : 'message-bubble--other'}`}
+              className={`message-bubble ${isCurrentUser(msg.author_id) ? 'message-bubble--self' : 'message-bubble--other'}`}
             >
               <div className="message-author">
-                {getAuthorName(msg.authorId)}
-                <span className="message-time">{formatTime(msg.timestamp)}</span>
+                {getAuthorName(msg)}
+                <span className="message-time">{formatTime(msg.created_at)}</span>
               </div>
               <div>{msg.content}</div>
             </div>
@@ -117,15 +140,16 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channelId }) => {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${channel.type === 'public' ? '#' : ''}${channel.name}`}
+          placeholder={`Message ${channel.channel_type === 'public' ? '#' : ''}${channel.channel_name}`}
           className="chat-input"
+          disabled={sending}
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim()}
+          disabled={!input.trim() || sending}
           className="chat-send-button"
         >
-          Send
+          {sending ? '...' : 'Send'}
         </button>
       </div>
     </div>
