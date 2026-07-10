@@ -42,6 +42,9 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("auth_token", token, 86400, "/", "", false, true) // secure flag false for now
+
 	ctx.JSON(http.StatusCreated, gin.H{
 		"token": token,
 		"user":  user,
@@ -61,8 +64,38 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("auth_token", token, 86400, "/", "", false, true) // secure flag false for now
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user":  user,
 	})
+}
+
+func (c *AuthController) Logout(ctx *gin.Context) {
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("auth_token", "", -1, "/", "", false, true)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
+
+func (c *AuthController) Me(ctx *gin.Context) {
+	uid, exists := ctx.Get("user_id")
+	if !exists || uid == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "missing user id",
+		})
+		return
+	}
+
+	usr, err := c.userService.FindByID(uid.(string))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// TODO: replace with actual user DTO later - with no password field to be extra safe
+	// password should still be filtered out as of right now due to json annotations though
+	ctx.JSON(http.StatusOK, gin.H{"user": usr})
 }

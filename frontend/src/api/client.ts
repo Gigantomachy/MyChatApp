@@ -1,23 +1,3 @@
-const API_BASE = 'http://localhost:8080'
-
-let authToken: string | null = null
-
-export function setAuthToken(token: string) {
-  authToken = token
-}
-
-export function clearAuthToken() {
-  authToken = null
-}
-
-function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`
-  }
-  return headers
-}
-
 // --- Types ---
 
 export interface BackendUser {
@@ -86,12 +66,13 @@ async function request<T>(
 ): Promise<T> {
   const init: RequestInit = {
     method,
-    headers: authHeaders(),
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
   }
   if (body !== undefined) {
     init.body = JSON.stringify(body)
   }
-  const res = await fetch(`${API_BASE}${path}`, init)
+  const res = await fetch(path, init)
   const text = await res.text()
   let data: unknown = undefined
   if (text) {
@@ -112,6 +93,14 @@ export function login(body: LoginRequest): Promise<AuthResponse> {
 
 export function register(body: RegisterRequest): Promise<AuthResponse> {
   return request<AuthResponse>('POST', '/api/register', body)
+}
+
+export function me(): Promise<{ user: BackendUser }> {
+  return request<{ user: BackendUser }>('GET', '/api/me')
+}
+
+export function logout(): Promise<void> {
+  return request<void>('POST', '/api/logout')
 }
 
 // --- Users ---

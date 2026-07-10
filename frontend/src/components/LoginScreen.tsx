@@ -4,7 +4,7 @@ import type { BackendUser } from '../api/client'
 import './LoginScreen.css'
 
 interface LoginScreenProps {
-  onLogin: (token: string, user: BackendUser) => void
+  onLogin: (user: BackendUser) => void
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
@@ -23,7 +23,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setLoading(true)
     try {
       const res = await login({ username, password })
-      onLogin(res.token, res.user)
+      onLogin(res.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -43,7 +43,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         first_name: firstName,
         last_name: lastName,
       })
-      onLogin(res.token, res.user)
+      onLogin(res.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {

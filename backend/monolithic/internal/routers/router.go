@@ -51,6 +51,9 @@ func (r *Router) Setup() *gin.Engine {
 
 		api.Use(middleware.JWTAuthMiddleware())
 
+		api.POST("/logout", r.AuthController.Logout)
+		api.GET("/me", r.AuthController.Me)
+
 		{
 			api.GET("/users", r.UserController.SearchUsers)
 

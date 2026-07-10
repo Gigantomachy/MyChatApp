@@ -21,21 +21,28 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		authorization := c.GetHeader("Authorization")
-		if authorization == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header missing"})
-			return
+		var tokenStr string
+
+		if cookieToken, err := c.Cookie("auth_token"); err == nil && cookieToken != "" {
+			tokenStr = cookieToken
 		}
 
-		parts := strings.SplitN(authorization, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Bearer token is missing"})
-			return
+		// fall back to authorization header with bearer token if cookie is not found
+		if tokenStr == "" {
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no auth token"})
+				return
+			}
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
+				return
+			}
+			tokenStr = parts[1]
 		}
 
-		bearer := parts[1]
-
-		token, err := jwt.Parse(bearer, func(token *jwt.Token) (any, error) {
+		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 
 			// verify that the signing method is what we expect
 			// jwt.SigningMethodHS256 is not a type - the underlying type is jwt.SigningMethodHMAC

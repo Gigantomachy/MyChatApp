@@ -115,3 +115,17 @@ func (s *UserService) SearchUsers(query string) ([]models.User, error) {
 	}
 	return filtered, nil
 }
+
+func (s *UserService) FindByID(user_id string) (*models.User, error) {
+	uid, err := gocql.ParseUUID(user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	usr, err := s.repo.FindByID(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return usr, nil
+}
