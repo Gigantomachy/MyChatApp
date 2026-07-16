@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useUser } from '../context/UserContext'
+import { useWebSocketEvent } from '../ws/WebSocketProvider'
 import {
   getMessages,
   sendMessage as apiSendMessage,
@@ -46,12 +47,23 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channel }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  useWebSocketEvent('message.new', (data) => {
+    const d = data as MessageItem & { channel_id: string }
+    if (channel && d.channel_id === channel.channel_id) {
+      setMessages(prev =>
+        prev.some(m => m.message_id === d.message_id) ? prev : [...prev, d]
+      )
+    }
+  })
+
   const handleSend = async () => {
     if (!input.trim() || !channel || sending) return
     setSending(true)
     try {
       const msg = await apiSendMessage(channel.channel_id, input.trim())
-      setMessages(prev => [...prev, msg])
+      setMessages(prev =>
+        prev.some(m => m.message_id === msg.message_id) ? prev : [...prev, msg]
+      )
       setInput('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message')

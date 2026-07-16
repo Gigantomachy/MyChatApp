@@ -3,6 +3,7 @@ package routers
 import (
 	"MyChatApp/monolithic/internal/controllers"
 	"MyChatApp/monolithic/internal/middleware"
+	"MyChatApp/monolithic/internal/ws"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,7 @@ import (
 
 // use a dependencies struct to avoid having to pass a million constructor arguments
 type RouterDependencies struct {
+	Hub               *ws.Hub
 	AuthController    *controllers.AuthController
 	FriendController  *controllers.FriendController
 	UserController    *controllers.UserController
@@ -53,6 +55,7 @@ func (r *Router) Setup() *gin.Engine {
 
 		api.POST("/logout", r.AuthController.Logout)
 		api.GET("/me", r.AuthController.Me)
+		api.GET("/ws", ws.ServeWS(r.Hub))
 
 		{
 			api.GET("/users", r.UserController.SearchUsers)

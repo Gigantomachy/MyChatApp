@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"MyChatApp/monolithic/internal/ws"
+	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gocql/gocql"
@@ -10,11 +12,13 @@ import (
 
 type FriendController struct {
 	friendService *services.FriendService
+	hub           *ws.Hub
 }
 
-func NewFriendController(fs *services.FriendService) *FriendController {
+func NewFriendController(fs *services.FriendService, hub *ws.Hub) *FriendController {
 	return &FriendController{
 		friendService: fs,
+		hub:           hub,
 	}
 }
 
@@ -132,6 +136,9 @@ func (f *FriendController) SendFriendRequest(c *gin.Context) {
 		return
 	}
 
+	event, _ := json.Marshal(gin.H{"type": "friend_request.new"})
+	f.hub.PublishToUsers([]string{recipient_id}, event)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"recipient_id": freq.RecipientID,
 		"status":       freq.Status,
@@ -160,6 +167,9 @@ func (f *FriendController) AcceptFriendRequest(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	event, _ := json.Marshal(gin.H{"type": "friend_request.accepted"})
+	f.hub.PublishToUsers([]string{sender_id}, event)
 
 	c.Status(http.StatusOK)
 }

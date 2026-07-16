@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { useUser } from '../context/UserContext'
+import { useWebSocketEvent } from '../ws/WebSocketProvider'
 import {
   getMyChannels,
   createChannel,
@@ -40,6 +41,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ onLogout }) => {
   useEffect(() => {
     fetchChannels()
   }, [fetchChannels])
+
+  useWebSocketEvent('channel.new', () => {
+    fetchChannels()
+  })
 
   const handleStartDM = async (friendId: string) => {
     setActionError('')

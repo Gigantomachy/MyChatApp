@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"MyChatApp/monolithic/internal/ws"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -18,11 +20,13 @@ type ChannelPayload struct {
 
 type ChannelsController struct {
 	channelService *services.ChannelService
+	hub            *ws.Hub
 }
 
-func NewChannelsController(cs *services.ChannelService) *ChannelsController {
+func NewChannelsController(cs *services.ChannelService, hub *ws.Hub) *ChannelsController {
 	return &ChannelsController{
 		channelService: cs,
+		hub:            hub,
 	}
 }
 
@@ -116,6 +120,11 @@ func (cc *ChannelsController) CreateChannel(c *gin.Context) {
 
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	if payload.ChannelType == "dm" && len(payload.Members) > 0 {
+		event, _ := json.Marshal(gin.H{"type": "channel.new"})
+		cc.hub.PublishToUsers([]string{payload.Members[0]}, event)
 	}
 
 	c.JSON(http.StatusCreated, chn)

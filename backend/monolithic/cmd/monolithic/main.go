@@ -9,6 +9,7 @@ import (
 	"MyChatApp/monolithic/internal/repositories/db"
 	"MyChatApp/monolithic/internal/routers"
 	"MyChatApp/monolithic/internal/services"
+	"MyChatApp/monolithic/internal/ws"
 )
 
 func main() {
@@ -29,21 +30,24 @@ func main() {
 	userService := services.NewUserService(userRepo)
 	authController := controllers.NewAuthController(userService)
 
+	hub := ws.NewHub()
+
 	friendRepo := db.NewFriendshipRepository(session)
 	friendService := services.NewFriendService(friendRepo, userRepo)
-	friendController := controllers.NewFriendController(friendService)
+	friendController := controllers.NewFriendController(friendService, hub)
 
 	userController := controllers.NewUserController(userService)
 
 	channelsRepo := db.NewChannelsRepository(session)
 	channelsService := services.NewChannelService(channelsRepo, userRepo, friendRepo)
-	channelsController := controllers.NewChannelsController(channelsService)
+	channelsController := controllers.NewChannelsController(channelsService, hub)
 
 	messagesRepo := db.NewMessagesRepository(session)
 	messagesService := services.NewMessageService(messagesRepo, channelsRepo, userRepo)
-	messagesController := controllers.NewMessagesController(messagesService)
+	messagesController := controllers.NewMessagesController(messagesService, hub)
 
 	r := routers.NewRouter(routers.RouterDependencies{
+		Hub:               hub,
 		AuthController:    authController,
 		FriendController:  friendController,
 		UserController:    userController,

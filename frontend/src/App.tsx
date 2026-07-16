@@ -4,6 +4,7 @@ import ChatLayout from './components/ChatLayout'
 import type { BackendUser } from './api/client'
 import { me, logout as apiLogout } from './api/client'
 import { UserProvider } from './context/UserContext'
+import { WebSocketProvider } from './ws/WebSocketProvider'
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -51,7 +52,9 @@ const App: React.FC = () => {
 
   return (
     <UserProvider value={currentUser}>
-      <ChatLayout onLogout={handleLogout} />
+      <WebSocketProvider>
+        <ChatLayout onLogout={handleLogout} />
+      </WebSocketProvider>
     </UserProvider>
   )
 }

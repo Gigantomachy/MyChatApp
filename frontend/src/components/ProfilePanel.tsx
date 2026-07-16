@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useUser } from '../context/UserContext'
+import { useWebSocketEvent } from '../ws/WebSocketProvider'
 import {
   getFriends,
   getFriendRequests,
@@ -49,6 +50,14 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ onClose, onLogout }) => {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  useWebSocketEvent('friend_request.new', () => {
+    fetchData()
+  })
+
+  useWebSocketEvent('friend_request.accepted', () => {
+    fetchData()
+  })
 
   const handleAccept = async (senderId: string) => {
     setActionError('')

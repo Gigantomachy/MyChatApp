@@ -221,3 +221,19 @@ func (s *MessageService) SendMessage(channelID, userID, content string) (*Messag
 		CreatedAt:       msg.CreatedAt,
 	}, nil
 }
+
+func (s *MessageService) GetChannelMemberIDs(channelID string) ([]string, error) {
+	cid, err := gocql.ParseUUID(channelID)
+	if err != nil {
+		return nil, err
+	}
+	ids, err := s.channelsRepo.GetMembersByChannel(cid)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, len(ids))
+	for i, id := range ids {
+		result[i] = id.String()
+	}
+	return result, nil
+}

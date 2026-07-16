@@ -44,7 +44,7 @@ func (h *Hub) Unregister(c *Connection) {
 
 func (h *Hub) PublishToUsers(user_ids []string, payload []byte) {
 	h.mtx.RLock()
-	defer h.mtx.Unlock()
+	defer h.mtx.RUnlock()
 
 	for _, uid := range user_ids {
 		for _, c := range h.connections[uid] {

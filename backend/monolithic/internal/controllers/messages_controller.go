@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"MyChatApp/monolithic/internal/ws"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -11,10 +13,11 @@ import (
 
 type MessagesController struct {
 	messageService *services.MessageService
+	hub            *ws.Hub
 }
 
-func NewMessagesController(ms *services.MessageService) *MessagesController {
-	return &MessagesController{messageService: ms}
+func NewMessagesController(ms *services.MessageService, hub *ws.Hub) *MessagesController {
+	return &MessagesController{messageService: ms, hub: hub}
 }
 
 // GET /api/channels/:id/messages
@@ -35,7 +38,7 @@ func (mc *MessagesController) GetMessages(c *gin.Context) {
 		}
 	}
 
-	// timeuuid used to compute the message bucket - default is today
+	// timeuuid is used to compute the bucket - default is today
 	before := c.Query("before")
 
 	messages, err := mc.messageService.GetMessages(channelID, uid.(string), limit, before)
@@ -82,6 +85,24 @@ func (mc *MessagesController) SendMessage(c *gin.Context) {
 
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	memberIDs, err := mc.messageService.GetChannelMemberIDs(channelID)
+	if err == nil {
+		event, _ := json.Marshal(gin.H{
+			"type": "message.new",
+			"data": gin.H{
+				"channel_id":        channelID,
+				"message_id":        msg.MessageID,
+				"author_id":         msg.AuthorID,
+				"author_first_name": msg.AuthorFirstName,
+				"author_last_name":  msg.AuthorLastName,
+				"author_username":   msg.AuthorUsername,
+				"content":           msg.Content,
+				"created_at":        msg.CreatedAt,
+			},
+		})
+		mc.hub.PublishToUsers(memberIDs, event)
 	}
 
 	c.JSON(http.StatusCreated, msg)
