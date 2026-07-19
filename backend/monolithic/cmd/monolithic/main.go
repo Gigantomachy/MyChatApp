@@ -18,8 +18,13 @@ func main() {
 		hosts = strings.Split(env, ",")
 	}
 
+	keyspace := os.Getenv("CASSANDRA_KEYSPACE")
+	if keyspace == "" {
+		keyspace = "my_chat_app"
+	}
+
 	// initialize cassandra DB
-	session, err := db.InitSession(hosts, "my_chat_app")
+	session, err := db.InitSession(hosts, keyspace)
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
