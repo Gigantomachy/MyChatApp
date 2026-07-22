@@ -1,0 +1,6 @@
+.git
+.gitignore
+*.md
+*_test.go
+internal/testutil/
+tests/
