@@ -1,0 +1,106 @@
+data "terraform_remote_state" "network" {
+  backend = "local"
+
+  config = {
+    path = var.network_state_path
+  }
+}
+
+locals {
+  vpc_id     = data.terraform_remote_state.network.outputs.vpc_id
+  subnet_ids = data.terraform_remote_state.network.outputs.public_subnet_ids
+}
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.24"
+
+  name               = var.project
+  kubernetes_version = var.kubernetes_version
+
+  vpc_id     = local.vpc_id
+  subnet_ids = local.subnet_ids
+
+  # Needed for kubectl from local machine. With no NAT gateway and no VPN, this is also how we reach the api
+  endpoint_public_access = true
+
+  # creates an EKS access entry granting cluster-admin to whichever IAM identity runs terraform apply. 
+  # Without this we cant talk to our cluster.
+  enable_cluster_creator_admin_permissions = true
+
+  addons = {
+    vpc-cni = {
+      before_compute = true
+    }
+
+    eks-pod-identity-agent = {
+      before_compute = true
+    }
+
+    coredns    = {}
+    kube-proxy = {}
+    vpc-cni    = {}
+
+    # Without this, a PVC just sits Pending forever and the Cassandra StatefulSet never starts
+    aws-ebs-csi-driver = {}
+  }
+
+  eks_managed_node_groups = {
+    default = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = [var.node_instance_type]
+      subnet_ids     = [local.subnet_ids[0]]
+
+      # Pinned at exactly one node. Raise max_size if you later want Cluster Autoscaler or Karpenter to have room to work
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      # The module builds its own launch template, so the older top-level disk_size argument is ignored. Root volume must be set here.
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size           = var.node_disk_size
+            volume_type           = "gp3"
+            encrypted             = true
+            delete_on_termination = true
+          }
+        }
+      }
+    }
+  }
+}
+
+data "aws_iam_policy_document" "ebs_csi_assume" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["pods.eks.amazonaws.com"]
+    }
+
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession",
+    ]
+  }
+}
+
+resource "aws_iam_role" "ebs_csi" {
+  name               = "${var.project}-ebs-csi-driver"
+  assume_role_policy = data.aws_iam_policy_document.ebs_csi_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi" {
+  role       = aws_iam_role.ebs_csi.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_eks_pod_identity_association" "ebs_csi" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "kube-system"
+  service_account = "ebs-csi-controller-sa"
+  role_arn        = aws_iam_role.ebs_csi.arn
+}
