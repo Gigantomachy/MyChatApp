@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"os"
+	"strings"
 )
 
 // use a dependencies struct to avoid having to pass a million constructor arguments
@@ -33,7 +35,7 @@ func (r *Router) Setup() *gin.Engine {
 	// setup CORS
 	config := cors.DefaultConfig()
 
-	config.AllowOrigins = []string{"http://localhost:5173"}
+	config.AllowOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
 	// explicitly allow credentials
 	config.AllowCredentials = true

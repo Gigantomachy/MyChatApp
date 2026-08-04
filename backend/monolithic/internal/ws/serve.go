@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"os"
+	"strings"
 )
 
-var allowedOrigins = map[string]bool{
-	"http://localhost:5173": true, // frontend, we mirror the CORS config
-}
+var allowedOrigins = map[string]bool{}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -17,6 +17,12 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return allowedOrigins[r.Header.Get("Origin")]
 	},
+}
+
+func init() {
+	for _, origin := range strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",") {
+		allowedOrigins[strings.TrimSpace(origin)] = true
+	}
 }
 
 func ServeWS(hub *Hub) gin.HandlerFunc {

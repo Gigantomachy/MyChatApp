@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+        - name: wait-for-schema
+          image: cassandra:5
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until cqlsh cassandra -e "DESCRIBE KEYSPACE my_chat_app" > /dev/null 2>&1; do
+                echo "waiting for keyspace my_chat_app"
+                sleep 5
+              done
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+      containers:
+        - name: backend
+          image: backend      # placeholder - Kustomize rewrites this to the ECR URI + tag.
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: CASSANDRA_HOSTS
+              value: cassandra    # Headless Service name - resolves to the cassandra pod IP.
+            - name: CASSANDRA_KEYSPACE
+              value: my_chat_app
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: ALLOWED_ORIGINS
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: jwt-secret
+          readinessProbe:
+            tcpSocket:  # TODO: swap this out for a proper httpGet with /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi

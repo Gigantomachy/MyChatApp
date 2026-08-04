@@ -39,7 +39,6 @@ module "eks" {
 
     coredns    = {}
     kube-proxy = {}
-    vpc-cni    = {}
 
     # Without this, a PVC just sits Pending forever and the Cassandra StatefulSet never starts
     aws-ebs-csi-driver = {}
@@ -50,6 +49,10 @@ module "eks" {
       ami_type       = "AL2023_x86_64_STANDARD"
       instance_types = [var.node_instance_type]
       subnet_ids     = [local.subnet_ids[0]]
+
+      iam_role_additional_policies = {
+        ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
 
       # Pinned at exactly one node. Raise max_size if you later want Cluster Autoscaler or Karpenter to have room to work
       min_size     = 1
@@ -85,6 +88,18 @@ data "aws_iam_policy_document" "ebs_csi_assume" {
       "sts:AssumeRole",
       "sts:TagSession",
     ]
+  }
+}
+
+data "aws_instances" "eks_nodes" {
+  depends_on = [module.eks]
+  filter {
+    name   = "tag:eks:cluster-name"
+    values = [module.eks.cluster_name]
+  }
+  filter {
+    name   = "instance-state-name"
+    values = ["running"]
   }
 }
 

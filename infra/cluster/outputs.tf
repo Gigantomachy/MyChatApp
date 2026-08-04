@@ -22,3 +22,8 @@ output "ecr_repository_urls" {
   description = "Passed through from the network layer for convenience when tagging images."
   value       = data.terraform_remote_state.network.outputs.ecr_repository_urls
 }
+
+output "node_public_ip" {
+  description = "Public IP of the single EKS node; used to build the NodePort CORS origin."
+  value       = try(data.aws_instances.eks_nodes.public_ips[0], "")
+}
