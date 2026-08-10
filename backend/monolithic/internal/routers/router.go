@@ -5,10 +5,7 @@ import (
 	"MyChatApp/monolithic/internal/middleware"
 	"MyChatApp/monolithic/internal/ws"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"os"
-	"strings"
 )
 
 // use a dependencies struct to avoid having to pass a million constructor arguments
@@ -32,18 +29,7 @@ func NewRouter(deps RouterDependencies) *Router {
 func (r *Router) Setup() *gin.Engine {
 	engine := gin.Default()
 
-	// setup CORS
-	config := cors.DefaultConfig()
-
-	config.AllowOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
-
-	// explicitly allow credentials
-	config.AllowCredentials = true
-
-	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
-
-	engine.Use(cors.New(config))
+	// removed CORS
 
 	api := engine.Group("/api") // normal assignment
 

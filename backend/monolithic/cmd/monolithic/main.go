@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"strings"
@@ -23,19 +24,32 @@ func main() {
 		keyspace = "my_chat_app"
 	}
 
-	// initialize cassandra DB
 	session, err := db.InitSession(hosts, keyspace)
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
 	defer session.Close()
 
-	// initialize and inject auth controller
 	userRepo := db.NewUserRepository(session)
 	userService := services.NewUserService(userRepo)
 	authController := controllers.NewAuthController(userService)
 
 	hub := ws.NewHub()
+
+	// optional Redis pub/sub fanout, skip if REDIS_ADDR is unset (single-node
+	// run or local tests) - the hub just delivers locally
+	if redisAddr := os.Getenv("REDIS_ADDR"); redisAddr != "" {
+		broker := ws.NewBroker(redisAddr)
+		ctx := context.Background()
+
+		if err := broker.Ping(ctx); err != nil {
+			log.Printf("WARNING: redis at %s unreachable, ws events will only reach this pod: %v", redisAddr, err)
+		}
+
+		hub.AttachBroker(broker)
+		broker.Subscribe(ctx, hub)
+		defer broker.Close()
+	}
 
 	friendRepo := db.NewFriendshipRepository(session)
 	friendService := services.NewFriendService(friendRepo, userRepo)

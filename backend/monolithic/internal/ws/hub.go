@@ -1,19 +1,27 @@
 package ws
 
 import (
+	"context"
+	"log"
 	"slices"
 	"sync"
+	"time"
 )
 
 type Hub struct {
 	mtx         sync.RWMutex
 	connections map[string][]*Connection
+	broker      *Broker
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		connections: make(map[string][]*Connection),
 	}
+}
+
+func (h *Hub) AttachBroker(b *Broker) {
+	h.broker = b
 }
 
 func (h *Hub) Register(c *Connection) {
@@ -43,6 +51,23 @@ func (h *Hub) Unregister(c *Connection) {
 }
 
 func (h *Hub) PublishToUsers(user_ids []string, payload []byte) {
+	if h.broker == nil {
+		h.deliver(user_ids, payload)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := h.broker.Publish(ctx, user_ids, payload); err != nil {
+		// non-fatal: the message is already persisted in Cassandra, and clients refetch history on reconnect.
+		log.Printf("failed to publish ws event to redis: %v", err)
+	}
+}
+
+// deliver sends payload to the given users' connections on this process.
+// it is called by PublishToUsers (local mode) and by the broker's Subscribe() in distributed mode
+func (h *Hub) deliver(user_ids []string, payload []byte) {
 	h.mtx.RLock()
 	defer h.mtx.RUnlock()
 

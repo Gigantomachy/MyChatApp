@@ -5,24 +5,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"os"
-	"strings"
 )
-
-var allowedOrigins = map[string]bool{}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return allowedOrigins[r.Header.Get("Origin")]
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // non-browser clients (curl, tests)
+		}
+		return origin == "http://"+r.Host || origin == "https://"+r.Host
 	},
-}
-
-func init() {
-	for _, origin := range strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",") {
-		allowedOrigins[strings.TrimSpace(origin)] = true
-	}
 }
 
 func ServeWS(hub *Hub) gin.HandlerFunc {

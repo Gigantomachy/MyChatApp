@@ -37,7 +37,7 @@ const CreateChannelModal: React.FC<CreateChannelModalProps> = ({
       setError('Channel name is required')
       return
     }
-    const channelName = trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+    const channelName = trimmed.replace(/^#+/, '').trim()
     onCreate(channelName)
   }
 
