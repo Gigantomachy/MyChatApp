@@ -20,12 +20,12 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: backend
   strategy:
-    type: Recreate
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -56,16 +56,13 @@ spec:
               value: cassandra    # Headless Service name - resolves to the cassandra pod IP.
             - name: CASSANDRA_KEYSPACE
               value: my_chat_app
-            - name: ALLOWED_ORIGINS
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: ALLOWED_ORIGINS
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: backend-secrets
                   key: jwt-secret
+            - name: REDIS_ADDR
+              value: redis:6379
           readinessProbe:
             tcpSocket:  # TODO: swap this out for a proper httpGet with /healthz
               port: 8080

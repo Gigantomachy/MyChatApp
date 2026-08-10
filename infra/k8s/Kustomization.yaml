@@ -5,6 +5,7 @@ resources:
   - storageclass.yaml
   - cassandra.yaml
   - cassandra-init-job.yaml
+  - redis.yaml
   - backend.yaml
   - frontend.yaml
 
@@ -19,9 +20,6 @@ configMapGenerator:
   - name: nginx-conf
     files:
       - default.conf=nginx.conf
-  - name: backend-config
-    envs:
-      - allowed-origins.env
 
 secretGenerator:
   # jwt-secret.txt in .gitignore.
@@ -32,7 +30,7 @@ secretGenerator:
 images:
   - name: backend
     newName: 935803162478.dkr.ecr.ca-central-1.amazonaws.com/mychatapp/backend
-    newTag: v1.2
+    newTag: v1.3
   - name: frontend
     newName: 935803162478.dkr.ecr.ca-central-1.amazonaws.com/mychatapp/frontend
-    newTag: v1.1
+    newTag: v1.3

@@ -39,39 +39,3 @@ module "vpc" {
     "kubernetes.io/role/elb" = "1"
   }
 }
-
-# Lives in the network layer specifically so it survives terraform destroy of the cluster layer.
-resource "aws_ecr_repository" "app" {
-  for_each = toset(["backend", "frontend"])
-
-  name                 = "${var.project}/${each.key}"
-  image_tag_mutability = "MUTABLE"
-
-  # lets terraform destroy remove the repo even when it still holds images. convenient for dev - remove in production.
-  force_delete = true
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-}
-
-resource "aws_ecr_lifecycle_policy" "app" {
-  for_each = aws_ecr_repository.app
-
-  repository = each.value.name
-
-  policy = jsonencode({
-    rules = [{
-      rulePriority = 1
-      description  = "Keep only the 10 most recent images"
-      selection = {
-        tagStatus   = "any"
-        countType   = "imageCountMoreThan"
-        countNumber = 10
-      }
-      action = {
-        type = "expire"
-      }
-    }]
-  })
-}

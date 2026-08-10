@@ -41,25 +41,31 @@ module "eks" {
     kube-proxy = {}
 
     # Without this, a PVC just sits Pending forever and the Cassandra StatefulSet never starts
-    aws-ebs-csi-driver = {}
+    aws-ebs-csi-driver = {
+      pod_identity_association = [
+        {
+          role_arn        = aws_iam_role.ebs_csi.arn
+          service_account = "ebs-csi-controller-sa"
+        }
+      ]
+    }
   }
 
   eks_managed_node_groups = {
     default = {
       ami_type       = "AL2023_x86_64_STANDARD"
       instance_types = [var.node_instance_type]
-      subnet_ids     = [local.subnet_ids[0]]
+      subnet_ids     = local.subnet_ids   # all public subnets = both AZs
 
       iam_role_additional_policies = {
         ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
 
-      # Pinned at exactly one node. Raise max_size if you later want Cluster Autoscaler or Karpenter to have room to work
-      min_size     = 1
-      max_size     = 1
-      desired_size = 1
+      # One node per AZ (2 public subnets across 2 AZs).
+      min_size     = 2
+      max_size     = 2
+      desired_size = 2
 
-      # The module builds its own launch template, so the older top-level disk_size argument is ignored. Root volume must be set here.
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
@@ -71,6 +77,17 @@ module "eks" {
           }
         }
       }
+    }
+  }
+
+  node_security_group_additional_rules = {
+    node_to_node_all_ports = {
+      description = "Allow node-to-node on all TCP ports (kube-proxy NodePort DNAT targets pod ports like 80)"
+      protocol    = "tcp"
+      from_port   = 1
+      to_port     = 65535
+      type        = "ingress"
+      self        = true
     }
   }
 }
@@ -91,18 +108,6 @@ data "aws_iam_policy_document" "ebs_csi_assume" {
   }
 }
 
-data "aws_instances" "eks_nodes" {
-  depends_on = [module.eks]
-  filter {
-    name   = "tag:eks:cluster-name"
-    values = [module.eks.cluster_name]
-  }
-  filter {
-    name   = "instance-state-name"
-    values = ["running"]
-  }
-}
-
 resource "aws_iam_role" "ebs_csi" {
   name               = "${var.project}-ebs-csi-driver"
   assume_role_policy = data.aws_iam_policy_document.ebs_csi_assume.json
@@ -111,11 +116,4 @@ resource "aws_iam_role" "ebs_csi" {
 resource "aws_iam_role_policy_attachment" "ebs_csi" {
   role       = aws_iam_role.ebs_csi.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
-
-resource "aws_eks_pod_identity_association" "ebs_csi" {
-  cluster_name    = module.eks.cluster_name
-  namespace       = "kube-system"
-  service_account = "ebs-csi-controller-sa"
-  role_arn        = aws_iam_role.ebs_csi.arn
 }

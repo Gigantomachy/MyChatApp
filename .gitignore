@@ -32,3 +32,8 @@ Thumbs.db
 go.sum
 
 .playwright-mcp/
+jwt-secret.txt
+allowed-origins.env
+
+*.tfstate*
+*.terraform*

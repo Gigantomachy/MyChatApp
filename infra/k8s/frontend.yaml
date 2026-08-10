@@ -5,9 +5,8 @@ metadata:
   labels:
     app: frontend
 spec:
-  # NodePort: reachable at http://<node-public-ip>:30080 with no load
-  # balancer and no hourly charge. Requires a security group rule on the
-  # node SG allowing 30080 from your IP -- see the README.
+  # NodePort target for the Terraform-managed ALB. The ALB forwards port 80
+  # here (30080) on each node and only the ALB security group can reach it.
   type: NodePort
   selector:
     app: frontend
@@ -24,7 +23,7 @@ metadata:
   labels:
     app: frontend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: frontend

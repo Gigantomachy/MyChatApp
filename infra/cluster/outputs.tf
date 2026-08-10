@@ -18,12 +18,12 @@ output "configure_kubectl" {
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 
-output "ecr_repository_urls" {
-  description = "Passed through from the network layer for convenience when tagging images."
-  value       = data.terraform_remote_state.network.outputs.ecr_repository_urls
+output "alb_dns_name" {
+  description = "ALB DNS name and the app URL."
+  value       = aws_lb.app.dns_name
 }
 
-output "node_public_ip" {
-  description = "Public IP of the single EKS node; used to build the NodePort CORS origin."
-  value       = try(data.aws_instances.eks_nodes.public_ips[0], "")
+output "alb_zone_id" {
+  description = "ALB hosted zone ID" # route 53 in the future?
+  value       = aws_lb.app.zone_id
 }
