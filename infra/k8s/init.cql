@@ -2,7 +2,7 @@
 -- Mounted via docker-compose as a cql init script
 
 CREATE KEYSPACE IF NOT EXISTS my_chat_app
-WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3};
 
 USE my_chat_app;
 

@@ -15,21 +15,38 @@ func NewUserRepository(session *gocql.Session) *UserRepository {
 	return &UserRepository{session: session}
 }
 
-func (r *UserRepository) CreateUser(user *models.User) error {
-	batch := r.session.NewBatch(gocql.LoggedBatch)
+// Use a lightweight transaction
+func (r *UserRepository) CreateUser(user *models.User) (bool, error) {
+	usernameLower := strings.ToLower(user.Username)
 
-	// group multiple statements so they are sent together as one unit
-	// note that nothing here guarantees uniqueness - cassandra will actually overwrite if a username already exists
-	// the uniqueness check is done in services
-	batch.Query(
+	// Claim the name first, IF NOT EXISTS runs Paxos
+	applied, err := r.session.Query(
+		"INSERT INTO users_by_username (username_lower, user_id, username) VALUES (?, ?, ?) IF NOT EXISTS",
+		usernameLower, user.UserID, user.Username,
+	).MapScanCAS(map[string]interface{}{})
+	if err != nil {
+		return false, err
+	}
+
+	if !applied {
+		return false, nil // name taken - 409 later
+	}
+
+	// We own the name. Now write the main record with a plain insert.
+	if err := r.session.Query(
 		"INSERT INTO users_by_id (user_id, username, password_hash, email, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		user.UserID, user.Username, user.PasswordHash, user.Email, user.FirstName, user.LastName, user.CreatedAt,
-	)
-	batch.Query(
-		"INSERT INTO users_by_username (username_lower, user_id, username) VALUES (?, ?, ?)",
-		strings.ToLower(user.Username), user.UserID, user.Username,
-	)
-	return r.session.ExecuteBatch(batch)
+	).Exec(); err != nil {
+		// best-effort rollback of the claim so a failed insert doesn't leave
+		// the name reserved forever pointing at a user that doesn't exist
+		_ = r.session.Query(
+			"DELETE FROM users_by_username WHERE username_lower = ?",
+			usernameLower,
+		).Exec()
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *UserRepository) FindByUsername(usernameLower string) (*models.User, error) {

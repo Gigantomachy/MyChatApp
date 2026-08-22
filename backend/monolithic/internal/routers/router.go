@@ -16,6 +16,7 @@ type RouterDependencies struct {
 	UserController    *controllers.UserController
 	ChannelController *controllers.ChannelsController
 	MessageController *controllers.MessagesController
+	HealthController  *controllers.HealthController
 }
 
 type Router struct {
@@ -30,6 +31,9 @@ func (r *Router) Setup() *gin.Engine {
 	engine := gin.Default()
 
 	// removed CORS
+
+	engine.GET("/healthz", r.HealthController.Healthz)
+	engine.GET("/readyz", r.HealthController.Readyz)
 
 	api := engine.Group("/api") // normal assignment
 

@@ -20,7 +20,7 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: backend
@@ -31,13 +31,37 @@ spec:
       labels:
         app: backend
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: backend
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: backend
       initContainers:
         - name: wait-for-schema
           image: cassandra:5
           command: ["/bin/sh", "-c"]
+          env:
+            - name: CASS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: username
+            - name: CASS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: password
           args:
             - |
-              until cqlsh cassandra -e "DESCRIBE KEYSPACE my_chat_app" > /dev/null 2>&1; do
+              until cqlsh mychatapp-dc1-service -u "$CASS_USERNAME" -p "$CASS_PASSWORD" -e "DESCRIBE KEYSPACE my_chat_app" > /dev/null 2>&1; do
                 echo "waiting for keyspace my_chat_app"
                 sleep 5
               done
@@ -53,9 +77,19 @@ spec:
               containerPort: 8080
           env:
             - name: CASSANDRA_HOSTS
-              value: cassandra    # Headless Service name - resolves to the cassandra pod IP.
+              value: mychatapp-dc1-service   # operator-created client service (verify: kubectl get svc)
             - name: CASSANDRA_KEYSPACE
               value: my_chat_app
+            - name: CASSANDRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: username
+            - name: CASSANDRA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: password
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -64,12 +98,14 @@ spec:
             - name: REDIS_ADDR
               value: redis:6379
           readinessProbe:
-            tcpSocket:  # TODO: swap this out for a proper httpGet with /healthz
+            httpGet:
+              path: /readyz
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /healthz
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 20

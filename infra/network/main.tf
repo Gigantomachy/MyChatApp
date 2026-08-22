@@ -7,7 +7,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  azs = slice(data.aws_availability_zones.available.names, 0, 2)
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
 }
 
 # node sits in a public subnet with a public IP and reaches the internet directly through the IGW

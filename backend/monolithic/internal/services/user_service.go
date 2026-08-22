@@ -22,12 +22,9 @@ func NewUserService(repo *db.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) Register(username, password, email, firstName, lastName string) (*models.User, string, error) {
-	existing, _ := s.repo.FindByUsername(strings.ToLower(username))
-	if existing != nil {
-		return nil, "", errors.New("username already taken")
-	}
+var ErrUsernameTaken = errors.New("username already taken")
 
+func (s *UserService) Register(username, password, email, firstName, lastName string) (*models.User, string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", err
@@ -48,8 +45,12 @@ func (s *UserService) Register(username, password, email, firstName, lastName st
 		CreatedAt:    time.Now(),
 	}
 
-	if err := s.repo.CreateUser(user); err != nil {
-		return nil, "", err
+	applied, err := s.repo.CreateUser(user)
+	if err != nil {
+		return nil, "", err // real DB error
+	}
+	if !applied {
+		return nil, "", ErrUsernameTaken
 	}
 
 	token, err := s.generateJWT(user)

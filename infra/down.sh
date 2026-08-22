@@ -6,14 +6,21 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-# Any AWS load balancer created by kubernetes is invisible to Terraform.
-# If one is left behind it holds ENIs in the subnets and blocks VPC deletion
-# later, with a very unhelpful error. Harmless to run when there are none.
+REGION=$(terraform -chdir=network output -raw aws_region)
+
 if kubectl cluster-info >/dev/null 2>&1; then
-  echo "==> Deleting Cassandra StatefulSet + PVCs (frees the EBS volumes)"
-  kubectl delete statefulset cassandra --ignore-not-found --timeout=2m || true
+  echo "==> Deleting K8ssandraCluster (operator tears down the StatefulSets cleanly)"
+  # Deleting the CR (not the statefulsets directly, which the operator would just
+  # recreate) lets cass-operator shut Cassandra down, then release the EBS volumes.
+  kubectl delete k8ssandracluster mychatapp --ignore-not-found --timeout=5m || true
+  kubectl wait --for=delete statefulset -l cassandra.datastax.com/cluster=mychatapp --timeout=5m || true
+
+  echo "==> Deleting PVCs (frees the EBS volumes)"
   kubectl delete pvc --all --ignore-not-found --timeout=2m || true
 
+  # Any AWS load balancer created by kubernetes is invisible to Terraform.
+  # If one is left behind it holds ENIs in the subnets and blocks VPC deletion
+  # later, with a very unhelpful error. Harmless to run when there are none.
   echo "==> Removing Kubernetes-managed load balancers"
   kubectl delete ingress --all --all-namespaces --ignore-not-found --timeout=2m || true
   kubectl delete svc --all-namespaces --field-selector spec.type=LoadBalancer \
@@ -21,7 +28,7 @@ if kubectl cluster-info >/dev/null 2>&1; then
   echo "    waiting 60s for AWS to actually release them"
   sleep 60
 else
-  echo "==> kubectl cannot reach a cluster; skipping load balancer cleanup"
+  echo "==> kubectl cannot reach a cluster; skipping Kubernetes cleanup"
 fi
 
 echo "==> Destroying cluster layer"
@@ -31,6 +38,7 @@ echo "==> Waiting for ENIs to be released from the VPC"
 VPC_ID=$(terraform -chdir=network output -raw vpc_id)
 for i in $(seq 1 30); do
   ENI_COUNT=$(aws ec2 describe-network-interfaces \
+    --region "${REGION}" \
     --filters "Name=vpc-id,Values=${VPC_ID}" \
     --query "length(NetworkInterfaces)" \
     --output text)

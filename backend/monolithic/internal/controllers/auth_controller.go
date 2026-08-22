@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"MyChatApp/monolithic/internal/services"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -38,7 +39,11 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		req.Username, req.Password, req.Email, req.FirstName, req.LastName,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		if errors.Is(err, services.ErrUsernameTaken) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

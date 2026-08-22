@@ -3,7 +3,6 @@ kind: Job
 metadata:
   name: cassandra-init
 spec:
-  # If the pod dies (node restart, Cassandra not up yet) retry a few times.
   backoffLimit: 6
   template:
     metadata:
@@ -15,15 +14,26 @@ spec:
         - name: cqlsh
           image: cassandra:5
           command: ["/bin/sh", "-c"]
+          env:
+            - name: CASS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: username
+            - name: CASS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mychatapp-superuser
+                  key: password
           args:
             - |
               set -e
               echo "waiting for cassandra to accept CQL..."
-              until cqlsh cassandra -e 'DESCRIBE KEYSPACES' > /dev/null 2>&1; do
+              until cqlsh mychatapp-dc1-service -u "$CASS_USERNAME" -p "$CASS_PASSWORD" -e 'DESCRIBE KEYSPACES' > /dev/null 2>&1; do
                 sleep 5
               done
               echo "applying schema"
-              cqlsh cassandra -f /schema/init.cql
+              cqlsh mychatapp-dc1-service -u "$CASS_USERNAME" -p "$CASS_PASSWORD" -f /schema/init.cql
               echo "schema applied"
           volumeMounts:
             - name: schema
@@ -38,5 +48,4 @@ spec:
       volumes:
         - name: schema
           configMap:
-            # Name is rewritten by Kustomize to the hashed version.
             name: cassandra-schema

@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - storageclass.yaml
-  - cassandra.yaml
+  - k8ssandra-cluster.yaml
   - cassandra-init-job.yaml
   - redis.yaml
   - backend.yaml
@@ -30,7 +30,7 @@ secretGenerator:
 images:
   - name: backend
     newName: 935803162478.dkr.ecr.ca-central-1.amazonaws.com/mychatapp/backend
-    newTag: v1.3
+    newTag: v1.4
   - name: frontend
     newName: 935803162478.dkr.ecr.ca-central-1.amazonaws.com/mychatapp/frontend
-    newTag: v1.3
+    newTag: v1.4

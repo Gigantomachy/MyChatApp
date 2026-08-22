@@ -61,10 +61,10 @@ module "eks" {
         ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
 
-      # One node per AZ (2 public subnets across 2 AZs).
-      min_size     = 2
-      max_size     = 2
-      desired_size = 2
+      # One node per AZ (3 public subnets across 3 AZs).
+      min_size     = 3
+      max_size     = 3
+      desired_size = 3
 
       block_device_mappings = {
         xvda = {
