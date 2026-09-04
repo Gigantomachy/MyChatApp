@@ -1,0 +1,76 @@
+---
+- name: Set hostname from tag
+  ansible.builtin.hostname:
+    name: "{{ ec2_tags['Name'] }}"
+
+- name: Set Cassandra node facts
+  ansible.builtin.set_fact:
+    cassandra_private_ip: "{{ ec2_private_ip_address }}"
+    cassandra_rack: "{{ ec2_tags['Rack'] }}"
+
+- name: Set SELinux permissive (dev, avoids port/write denials)
+  ansible.builtin.selinux:
+    policy: targeted
+    state: permissive
+
+- name: Install Java and helpers
+  ansible.builtin.dnf:
+    name:
+      - java-17-amazon-corretto
+      - rsync
+      - tar
+      - xfsprogs
+    state: present
+
+- name: Create cassandra system user
+  ansible.builtin.user:
+    name: cassandra
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+
+- name: Discover the unmounted data disk
+  ansible.builtin.shell: |
+    set -e
+    for d in $(lsblk -dno NAME); do
+      if [ "$(lsblk -n /dev/$d | wc -l)" -eq 1 ]; then
+        echo "/dev/$d"
+        exit 0
+      fi
+    done
+    exit 1
+  register: data_disk_result
+  changed_when: false
+
+- name: Create filesystem on the data disk (idempotent)
+  ansible.builtin.filesystem:
+    fstype: xfs
+    dev: "{{ data_disk_result.stdout }}"
+
+- name: Create /var/lib/cassandra mountpoint
+  ansible.builtin.file:
+    path: /var/lib/cassandra
+    state: directory
+    owner: cassandra
+    group: cassandra
+    mode: "0750"
+
+- name: Get data disk UUID
+  ansible.builtin.command: blkid -s UUID -o value "{{ data_disk_result.stdout }}"
+  register: data_uuid_result
+  changed_when: false
+
+- name: Mount data disk by UUID
+  ansible.builtin.mount:
+    path: /var/lib/cassandra
+    src: "UUID={{ data_uuid_result.stdout }}"
+    fstype: xfs
+    opts: defaults,nofail
+    state: mounted
+
+- name: Ensure data dir ownership
+  ansible.builtin.file:
+    path: /var/lib/cassandra
+    owner: cassandra
+    group: cassandra
+    mode: "0750"

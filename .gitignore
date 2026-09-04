@@ -37,3 +37,6 @@ allowed-origins.env
 
 *.tfstate*
 *.terraform*
+
+/infra/db/mychatapp-key.pem
+/infra/k8s/secrets/

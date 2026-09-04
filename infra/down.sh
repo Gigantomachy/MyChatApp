@@ -1,58 +1,38 @@
 #!/usr/bin/env bash
-
-# Tear the cluster down.
-# Deliberately does NOT touch the network layer because the VPC costs nothing while idle (no NAT gateway).
+# Tear the app cluster down. Deliberately does NOT touch the network layer or the
+# Cassandra DB layer (./db.sh) - the DB keeps its data and stays reachable.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 REGION=$(terraform -chdir=network output -raw aws_region)
-
-if kubectl cluster-info >/dev/null 2>&1; then
-  echo "==> Deleting K8ssandraCluster (operator tears down the StatefulSets cleanly)"
-  # Deleting the CR (not the statefulsets directly, which the operator would just
-  # recreate) lets cass-operator shut Cassandra down, then release the EBS volumes.
-  kubectl delete k8ssandracluster mychatapp --ignore-not-found --timeout=5m || true
-  kubectl wait --for=delete statefulset -l cassandra.datastax.com/cluster=mychatapp --timeout=5m || true
-
-  echo "==> Deleting PVCs (frees the EBS volumes)"
-  kubectl delete pvc --all --ignore-not-found --timeout=2m || true
-
-  # Any AWS load balancer created by kubernetes is invisible to Terraform.
-  # If one is left behind it holds ENIs in the subnets and blocks VPC deletion
-  # later, with a very unhelpful error. Harmless to run when there are none.
-  echo "==> Removing Kubernetes-managed load balancers"
-  kubectl delete ingress --all --all-namespaces --ignore-not-found --timeout=2m || true
-  kubectl delete svc --all-namespaces --field-selector spec.type=LoadBalancer \
-    --ignore-not-found --timeout=2m || true
-  echo "    waiting 60s for AWS to actually release them"
-  sleep 60
-else
-  echo "==> kubectl cannot reach a cluster; skipping Kubernetes cleanup"
-fi
+VPC_ID=$(terraform -chdir=network output -raw vpc_id)
 
 echo "==> Destroying cluster layer"
 terraform -chdir=cluster destroy -auto-approve
 
-echo "==> Waiting for ENIs to be released from the VPC"
-VPC_ID=$(terraform -chdir=network output -raw vpc_id)
+# The 3 Cassandra instances keep their ENIs, so wait until the only ENIs left in
+# the VPC are the DB ones (tagged Role=cassandra).
+DB_ENI_COUNT=$(aws ec2 describe-network-interfaces --region "$REGION" \
+  --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Role,Values=cassandra" \
+  --query "length(NetworkInterfaces)" --output text)
+
 for i in $(seq 1 30); do
-  ENI_COUNT=$(aws ec2 describe-network-interfaces \
-    --region "${REGION}" \
+  TOTAL_ENI_COUNT=$(aws ec2 describe-network-interfaces --region "$REGION" \
     --filters "Name=vpc-id,Values=${VPC_ID}" \
-    --query "length(NetworkInterfaces)" \
-    --output text)
-  if [ "$ENI_COUNT" -eq 0 ]; then
-    echo "    VPC is free of ENIs"
+    --query "length(NetworkInterfaces)" --output text)
+  if [ "$TOTAL_ENI_COUNT" -eq "$DB_ENI_COUNT" ]; then
+    echo "    VPC is free of EKS ENIs"
     break
   fi
-  echo "    waiting for ${ENI_COUNT} ENI(s) to release... (${i}/30)"
+  echo "    waiting for ENIs to release... (${i}/30)"
   sleep 10
 done
-if [ "$ENI_COUNT" -ne 0 ]; then
-  echo "    WARNING: ${ENI_COUNT} ENI(s) still in the VPC. A network destroy may hang."
+
+if [ "$TOTAL_ENI_COUNT" -ne "$DB_ENI_COUNT" ]; then
+  echo "    WARNING: ${TOTAL_ENI_COUNT} ENI(s) remain besides the ${DB_ENI_COUNT} Cassandra ENI(s)."
 fi
 
 echo
-echo "Cluster destroyed. VPC and ECR left in place."
-echo "To tear those down as well: terraform -chdir=network destroy"
+echo "Cluster destroyed. Cassandra DB is untouched (./db.sh status)."
+echo "VPC and ECR left in place. To tear the VPC down: terraform -chdir=network destroy"

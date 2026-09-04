@@ -5,7 +5,7 @@ Two Terraform layers with separate state, so the expensive half can be destroyed
 ```
 infra/
   network/    VPC (public subnets, no NAT) — long-lived, ~$0/hr idle
-  cluster/    EKS control plane + 1 managed node + addons — ~$0.20/hr, destroy when idle
+  cluster/    EKS control plane + 3 managed node + addons — ~$0.60/hr, destroy when idle
   up.sh       apply both layers, configure kubectl
   down.sh     destroy the cluster layer only
 ```

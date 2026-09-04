@@ -44,31 +44,6 @@ spec:
           labelSelector:
             matchLabels:
               app: backend
-      initContainers:
-        - name: wait-for-schema
-          image: cassandra:5
-          command: ["/bin/sh", "-c"]
-          env:
-            - name: CASS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: mychatapp-superuser
-                  key: username
-            - name: CASS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mychatapp-superuser
-                  key: password
-          args:
-            - |
-              until cqlsh mychatapp-dc1-service -u "$CASS_USERNAME" -p "$CASS_PASSWORD" -e "DESCRIBE KEYSPACE my_chat_app" > /dev/null 2>&1; do
-                echo "waiting for keyspace my_chat_app"
-                sleep 5
-              done
-          resources:
-            requests:
-              cpu: 50m
-              memory: 128Mi
       containers:
         - name: backend
           image: backend      # placeholder - Kustomize rewrites this to the ECR URI + tag.
@@ -77,19 +52,22 @@ spec:
               containerPort: 8080
           env:
             - name: CASSANDRA_HOSTS
-              value: mychatapp-dc1-service   # operator-created client service (verify: kubectl get svc)
+              valueFrom:
+                configMapKeyRef:
+                  name: cassandra-config
+                  key: CASSANDRA_HOSTS
             - name: CASSANDRA_KEYSPACE
               value: my_chat_app
             - name: CASSANDRA_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: mychatapp-superuser
-                  key: username
+                  name: backend-secrets
+                  key: CASSANDRA_USERNAME
             - name: CASSANDRA_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mychatapp-superuser
-                  key: password
+                  name: backend-secrets
+                  key: CASSANDRA_PASSWORD
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:

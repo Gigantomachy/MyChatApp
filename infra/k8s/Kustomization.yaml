@@ -2,30 +2,24 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - storageclass.yaml
-  - k8ssandra-cluster.yaml
-  - cassandra-init-job.yaml
   - redis.yaml
   - backend.yaml
   - frontend.yaml
 
-# for things that should be shared, gitignored, or need hash-triggered rollouts
-# kustomize hashes the ConfigMap name and rewrites the reference, so changing a value causes a pod rollout
 configMapGenerator:
-  # init.cql mounted into the cassandra-init Job
-  - name: cassandra-schema
-    files:
-      - init.cql
-  # nginx.conf mounted over /etc/nginx/conf.d/default.conf in the frontend
   - name: nginx-conf
     files:
       - default.conf=nginx.conf
+  - name: cassandra-config
+    literals:
+      - CASSANDRA_HOSTS=10.0.0.10,10.0.1.10,10.0.2.10
 
 secretGenerator:
-  # jwt-secret.txt in .gitignore.
   - name: backend-secrets
     files:
       - jwt-secret=jwt-secret.txt
+      - CASSANDRA_USERNAME=secrets/cassandra-app-username.txt
+      - CASSANDRA_PASSWORD=secrets/cassandra-app-password.txt
 
 images:
   - name: backend

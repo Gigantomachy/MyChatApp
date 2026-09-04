@@ -39,16 +39,6 @@ module "eks" {
 
     coredns    = {}
     kube-proxy = {}
-
-    # Without this, a PVC just sits Pending forever and the Cassandra StatefulSet never starts
-    aws-ebs-csi-driver = {
-      pod_identity_association = [
-        {
-          role_arn        = aws_iam_role.ebs_csi.arn
-          service_account = "ebs-csi-controller-sa"
-        }
-      ]
-    }
   }
 
   eks_managed_node_groups = {
@@ -90,30 +80,4 @@ module "eks" {
       self        = true
     }
   }
-}
-
-data "aws_iam_policy_document" "ebs_csi_assume" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["pods.eks.amazonaws.com"]
-    }
-
-    actions = [
-      "sts:AssumeRole",
-      "sts:TagSession",
-    ]
-  }
-}
-
-resource "aws_iam_role" "ebs_csi" {
-  name               = "${var.project}-ebs-csi-driver"
-  assume_role_policy = data.aws_iam_policy_document.ebs_csi_assume.json
-}
-
-resource "aws_iam_role_policy_attachment" "ebs_csi" {
-  role       = aws_iam_role.ebs_csi.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }

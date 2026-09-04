@@ -1,0 +1,12 @@
+---
+- name: Provision Cassandra cluster
+  hosts: cassandra
+  gather_facts: true
+
+  vars_files:
+    - group_vars/cassandra.yaml
+
+  roles:
+    - common
+    - cassandra
+    - secure

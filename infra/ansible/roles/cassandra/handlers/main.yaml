@@ -1,0 +1,9 @@
+---
+- name: restart cassandra
+  ansible.builtin.systemd:
+    name: cassandra
+    state: restarted
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

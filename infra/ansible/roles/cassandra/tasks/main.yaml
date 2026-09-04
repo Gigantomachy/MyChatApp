@@ -1,0 +1,90 @@
+---
+- name: Install Cassandra
+  become: true
+  block:
+    - name: Create staging dir
+      ansible.builtin.file:
+        path: /opt/cassandra
+        state: directory
+
+    - name: Download Cassandra tarball
+      ansible.builtin.get_url:
+        url: "https://archive.apache.org/dist/cassandra/{{ cassandra_version }}/apache-cassandra-{{ cassandra_version }}-bin.tar.gz"
+        dest: "/opt/cassandra/apache-cassandra-{{ cassandra_version }}-bin.tar.gz"
+        checksum: "sha256:{{ cassandra_sha256 }}"
+        mode: "0644"
+
+    - name: Extract Cassandra
+      ansible.builtin.unarchive:
+        src: "/opt/cassandra/apache-cassandra-{{ cassandra_version }}-bin.tar.gz"
+        dest: /opt
+        remote_src: true
+        creates: "/opt/apache-cassandra-{{ cassandra_version }}"
+
+    - name: Symlink /opt/cassandra
+      ansible.builtin.file:
+        src: "/opt/apache-cassandra-{{ cassandra_version }}"
+        dest: /opt/cassandra
+        state: link
+        force: true
+
+    - name: Install systemd unit
+      ansible.builtin.template:
+        src: cassandra.service.j2
+        dest: /etc/systemd/system/cassandra.service
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Render cassandra.yaml
+      ansible.builtin.template:
+        src: cassandra.yaml.j2
+        dest: /opt/cassandra/conf/cassandra.yaml
+        mode: "0644"
+      notify: restart cassandra
+
+    - name: Render rackdc.properties
+      ansible.builtin.template:
+        src: rackdc.properties.j2
+        dest: /opt/cassandra/conf/rackdc.properties
+        mode: "0644"
+      notify: restart cassandra
+
+    - name: Pin heap min in jvm-server.options
+      ansible.builtin.lineinfile:
+        path: /opt/cassandra/conf/jvm-server.options
+        regexp: "^-Xms"
+        line: "-Xms{{ heap_mb }}M"
+      notify: restart cassandra
+
+    - name: Pin heap max in jvm-server.options
+      ansible.builtin.lineinfile:
+        path: /opt/cassandra/conf/jvm-server.options
+        regexp: "^-Xmx"
+        line: "-Xmx{{ heap_mb }}M"
+      notify: restart cassandra
+
+    - name: Create log directory
+      ansible.builtin.file:
+        path: /var/log/cassandra
+        state: directory
+        owner: cassandra
+        group: cassandra
+        mode: "0755"
+
+    - name: Start and enable Cassandra
+      ansible.builtin.systemd:
+        name: cassandra
+        enabled: true
+        state: started
+
+    - name: Apply config changes (restart only if something changed)
+      ansible.builtin.meta: flush_handlers
+
+- name: Wait for the ring to be UP/NORMAL (all 3 nodes)
+  ansible.builtin.command: /opt/cassandra/bin/nodetool status
+  register: ring_status
+  until: ring_status.stdout | regex_findall('^UN\s+', multiline=True) | length | int == 3
+  retries: 60
+  delay: 5
+  run_once: true
+  become: false

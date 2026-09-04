@@ -1,0 +1,23 @@
+# unset keys use Cassandra defaults
+cluster_name: '{{ cluster_name }}'
+
+num_tokens: 16
+
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+      - seeds: '{{ seeds }}'
+
+listen_address: '{{ cassandra_private_ip }}'
+rpc_address: '{{ cassandra_private_ip }}'
+
+endpoint_snitch: GossipingPropertyFileSnitch
+
+authenticator: PasswordAuthenticator
+authorizer: CassandraAuthorizer
+
+data_file_directories:
+  - /var/lib/cassandra/data
+commitlog_directory: /var/lib/cassandra/commitlog
+saved_caches_directory: /var/lib/cassandra/saved_caches
+hints_directory: /var/lib/cassandra/hints
