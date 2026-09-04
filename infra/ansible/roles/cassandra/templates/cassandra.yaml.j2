@@ -19,5 +19,8 @@ authorizer: CassandraAuthorizer
 data_file_directories:
   - /var/lib/cassandra/data
 commitlog_directory: /var/lib/cassandra/commitlog
+commitlog_sync: periodic
+commitlog_sync_period: 10000ms
+partitioner: org.apache.cassandra.dht.Murmur3Partitioner
 saved_caches_directory: /var/lib/cassandra/saved_caches
 hints_directory: /var/lib/cassandra/hints

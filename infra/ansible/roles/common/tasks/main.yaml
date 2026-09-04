@@ -1,12 +1,12 @@
 ---
 - name: Set hostname from tag
   ansible.builtin.hostname:
-    name: "{{ ec2_tags['Name'] }}"
+    name: "{{ tags['Name'] }}"
 
 - name: Set Cassandra node facts
   ansible.builtin.set_fact:
-    cassandra_private_ip: "{{ ec2_private_ip_address }}"
-    cassandra_rack: "{{ ec2_tags['Rack'] }}"
+    cassandra_private_ip: "{{ private_ip_address }}"
+    cassandra_rack: "{{ tags['Rack'] }}"
 
 - name: Set SELinux permissive (dev, avoids port/write denials)
   ansible.builtin.selinux:

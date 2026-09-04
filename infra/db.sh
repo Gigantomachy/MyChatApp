@@ -27,7 +27,7 @@ run_ansible() {
     ANSIBLE_CONFIG="$(pwd)/ansible.cfg"
     AWS_SHARED_CREDENTIALS_FILE="$aws_dir/credentials" \
     AWS_CONFIG_FILE="$aws_dir/config" \
-    ansible-playbook playbook.yaml )
+    ansible-playbook -i inventory/aws_ec2.yaml playbook.yaml )
 }
 
 case "${1:-apply}" in

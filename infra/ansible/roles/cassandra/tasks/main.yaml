@@ -21,6 +21,17 @@
         remote_src: true
         creates: "/opt/apache-cassandra-{{ cassandra_version }}"
 
+    - name: Inspect /opt/cassandra
+      ansible.builtin.stat:
+        path: /opt/cassandra
+      register: cassandra_install
+
+    - name: Remove stale /opt/cassandra directory (leftovers from an aborted run)
+      ansible.builtin.file:
+        path: /opt/cassandra
+        state: absent
+      when: cassandra_install.stat.exists and cassandra_install.stat.isdir
+
     - name: Symlink /opt/cassandra
       ansible.builtin.file:
         src: "/opt/apache-cassandra-{{ cassandra_version }}"
@@ -42,10 +53,10 @@
         mode: "0644"
       notify: restart cassandra
 
-    - name: Render rackdc.properties
+    - name: Render rackdcs.properties
       ansible.builtin.template:
-        src: rackdc.properties.j2
-        dest: /opt/cassandra/conf/rackdc.properties
+        src: rackdcs.properties.j2
+        dest: /opt/cassandra/conf/cassandra-rackdc.properties
         mode: "0644"
       notify: restart cassandra
 
@@ -65,7 +76,7 @@
 
     - name: Create log directory
       ansible.builtin.file:
-        path: /var/log/cassandra
+        path: /opt/cassandra/logs
         state: directory
         owner: cassandra
         group: cassandra

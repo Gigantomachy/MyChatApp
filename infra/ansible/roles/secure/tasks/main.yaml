@@ -5,7 +5,7 @@
     - name: Ensure DB secrets exist (run ./db.sh once to generate)
       ansible.builtin.stat:
         path: "{{ secrets_dir }}/cassandra-superuser.txt"
-      failed_when: not cassandra_superuser.stat.exists
+      register: cassandra_superuser
 
     - name: Load secrets
       ansible.builtin.set_fact:
@@ -18,9 +18,22 @@
         src: init.cql
         dest: /opt/cassandra/init.cql
 
+    - name: Wait until the superuser accepts the secret or default password
+      ansible.builtin.shell: |
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }} -u cassandra -p '{{ superuser_password }}' -e "LIST ROLES" >/dev/null 2>&1 && exit 0
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }} -u cassandra -p cassandra      -e "LIST ROLES" >/dev/null 2>&1 && exit 0
+        exit 1
+      register: superuser_login
+      changed_when: false
+      failed_when: false
+      become: false
+      until: superuser_login.rc == 0
+      retries: 30
+      delay: 5
+
     - name: Check if superuser password is already rotated
       ansible.builtin.command: >
-        /opt/cassandra/bin/cqlsh {{ ansible_host }}
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }}
         -u cassandra -p '{{ superuser_password }}'
         -e "SELECT role FROM system_auth.roles WHERE role = 'cassandra'"
       register: pw_check
@@ -30,7 +43,7 @@
 
     - name: Rotate default superuser password
       ansible.builtin.command: >
-        /opt/cassandra/bin/cqlsh {{ ansible_host }}
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }}
         -u cassandra -p cassandra
         -e "ALTER ROLE cassandra WITH PASSWORD = '{{ superuser_password }}'"
       when: pw_check.rc != 0
@@ -38,21 +51,21 @@
 
     - name: Apply schema (idempotent - init.cql uses IF NOT EXISTS)
       ansible.builtin.command: >
-        /opt/cassandra/bin/cqlsh {{ ansible_host }}
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }}
         -u cassandra -p '{{ superuser_password }}'
         -f /opt/cassandra/init.cql
       become: false
 
     - name: Create app role (idempotent)
       ansible.builtin.command: >
-        /opt/cassandra/bin/cqlsh {{ ansible_host }}
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }}
         -u cassandra -p '{{ superuser_password }}'
         -e "CREATE ROLE IF NOT EXISTS {{ app_username }} WITH LOGIN = true AND PASSWORD = '{{ app_password }}'"
       become: false
 
     - name: Grant app role access to the keyspace
       ansible.builtin.command: >
-        /opt/cassandra/bin/cqlsh {{ ansible_host }}
+        /opt/cassandra/bin/cqlsh {{ cassandra_private_ip }}
         -u cassandra -p '{{ superuser_password }}'
         -e "GRANT ALL PERMISSIONS ON KEYSPACE my_chat_app TO {{ app_username }}"
       become: false
