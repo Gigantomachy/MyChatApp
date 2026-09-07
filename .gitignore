@@ -29,7 +29,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-go.sum
+# go.sum
 
 .playwright-mcp/
 jwt-secret.txt
