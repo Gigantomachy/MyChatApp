@@ -35,7 +35,14 @@ jobs:
 
       - name: gofmt check
         working-directory: backend/monolithic
-        run: test -z "$(gofmt -l .)"
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not gofmt-formatted:"
+            echo "$unformatted"
+            echo "Fix with: gofmt -w . (from backend/monolithic)"
+            exit 1
+          fi
 
       - name: go vet
         working-directory: backend/monolithic
@@ -102,7 +109,7 @@ jobs:
       - name: Create test keyspace
         working-directory: frontend
         run: |
-          node -e "const c=require('cassandra-driver');const q=\"CREATE KEYSPACE IF NOT EXISTS my_chat_app_test WITH replication = {'class':'SimpleStrategy','replication_factor':1}\";(async()=>{const cl=new c.Client({contactPoints:['127.0.0.1']});await cl.connect();await cl.execute(q);await cl.shutdown();console.log('keyspace ready')})().catch(e=>{console.error(e);process.exit(1)})"
+          node -e "const c=require('cassandra-driver');const q=\"CREATE KEYSPACE IF NOT EXISTS my_chat_app_test WITH replication = {'class':'SimpleStrategy','replication_factor':1}\";(async()=>{const cl=new c.Client({contactPoints:['127.0.0.1'],localDataCenter:'datacenter1'});await cl.connect();await cl.execute(q);await cl.shutdown();console.log('keyspace ready')})().catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Build backend binary
         working-directory: backend/monolithic

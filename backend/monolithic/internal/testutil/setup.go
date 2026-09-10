@@ -177,8 +177,8 @@ type AuthResponse struct {
 }
 
 type FriendRequestItem struct {
-	SenderID       string `json:"sender_id"`
-	SenderUsername string `json:"sender_username"`
+	SenderID        string `json:"sender_id"`
+	SenderUsername  string `json:"sender_username"`
 	SenderFirstName string `json:"sender_first_name"`
 	SenderLastName  string `json:"sender_last_name"`
 }
