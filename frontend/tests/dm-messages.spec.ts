@@ -13,7 +13,7 @@ test('Steven starts DM with Jessica, real-time messages work', async ({ browser 
   // Steven starts a DM with Jessica
   await stevenPage.getByRole('button', { name: 'Start new chat' }).click()
   await stevenPage.getByPlaceholder('Search friends...').fill('jessica')
-  await stevenPage.getByText('DM').click()
+  await stevenPage.locator('.new-chat-row', { hasText: 'jessica' }).click()
 
   // Steven sees the DM in his sidebar and the chat area opens
   await expect(stevenPage.locator('.sidebar-channel-name', { hasText: 'Jessica' })).toBeVisible({ timeout: 5000 })

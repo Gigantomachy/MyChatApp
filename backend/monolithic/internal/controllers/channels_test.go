@@ -54,8 +54,8 @@ func TestCreatePublicChannelAndJoin(t *testing.T) {
 	resp, respBody = testutil.DoRequest(t, "GET", "/api/channels/"+ch.ChannelID, nil, aliceCookie)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	var details struct {
-		ChannelID string             `json:"channel_id"`
-		Users     []testutil.User    `json:"users"`
+		ChannelID string          `json:"channel_id"`
+		Users     []testutil.User `json:"users"`
 	}
 	json.Unmarshal(respBody, &details)
 	assert.Len(t, details.Users, 3)

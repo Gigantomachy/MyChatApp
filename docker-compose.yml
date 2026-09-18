@@ -11,6 +11,8 @@ services:
 
   cassandra:
     image: cassandra:5
+    ports:
+      - "127.0.0.1:9042:9042"
     volumes:
       - cassandra_data:/var/lib/cassandra
     environment:
