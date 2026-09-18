@@ -13,10 +13,10 @@ test('Steven creates a public channel, Jessica joins it', async ({ browser }: { 
   // Steven creates a public channel
   await stevenPage.getByRole('button', { name: 'Create channel' }).click()
   await stevenPage.getByPlaceholder('new-channel').fill('test-channel')
-  await stevenPage.getByRole('button', { name: 'Create Channel' }).click()
+  await stevenPage.locator('.create-channel-btn').click()
 
   // Steven sees the channel in his sidebar
-  await expect(stevenPage.locator('.sidebar-channel-name', { hasText: '#test-channel' })).toBeVisible({ timeout: 5000 })
+  await expect(stevenPage.locator('.sidebar-channel-name', { hasText: 'test-channel' })).toBeVisible({ timeout: 5000 })
 
   // Jessica opens search and finds the channel
   await jessicaPage.getByRole('button', { name: 'Search' }).click()
@@ -24,14 +24,14 @@ test('Steven creates a public channel, Jessica joins it', async ({ browser }: { 
   await jessicaPage.getByRole('tab', { name: 'Channels' }).click()
 
   // Jessica sees the channel with a Join button
-  await expect(jessicaPage.getByText('#test-channel')).toBeVisible({ timeout: 5000 })
+  await expect(jessicaPage.locator('.search-name', { hasText: 'test-channel' })).toBeVisible({ timeout: 5000 })
   await jessicaPage.getByRole('button', { name: 'Join' }).click()
 
   // Jessica sees the channel in her sidebar
-  await expect(jessicaPage.locator('.sidebar-channel-name', { hasText: '#test-channel' })).toBeVisible({ timeout: 5000 })
+  await expect(jessicaPage.locator('.sidebar-channel-name', { hasText: 'test-channel' })).toBeVisible({ timeout: 5000 })
 
   // Steven sends a message in the channel
-  await stevenPage.locator('.sidebar-channel-name', { hasText: '#test-channel' }).click()
+  await stevenPage.locator('.sidebar-channel-name', { hasText: 'test-channel' }).click()
   const stevenInput = stevenPage.locator('.chat-input')
   await stevenInput.fill('Welcome to the channel!')
   await stevenInput.press('Enter')

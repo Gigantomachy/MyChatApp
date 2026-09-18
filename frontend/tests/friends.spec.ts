@@ -22,6 +22,7 @@ test('Steven sends friend request to Bob, Bob accepts', async ({ browser }: { br
 
   // Button should change to "Cancel"
   await expect(stevenPage.getByRole('button', { name: 'Cancel' })).toBeVisible()
+  await stevenPage.keyboard.press('Escape')
 
   // Bob opens his profile panel
   await bobPage.locator('.top-bar-avatar-btn').click()
@@ -36,6 +37,7 @@ test('Steven sends friend request to Bob, Bob accepts', async ({ browser }: { br
   await expect(bobPage.getByText('Steven Miller')).toHaveCount(1, { timeout: 5000 })
 
   // Steven opens his profile panel and sees Bob in friends list
+  await stevenPage.keyboard.press('Escape')
   await stevenPage.locator('.top-bar-avatar-btn').click()
   await expect(stevenPage.getByText('Bob Johnson')).toBeVisible({ timeout: 10000 })
 

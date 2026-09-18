@@ -137,16 +137,18 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onJoinChanne
           autoFocus
         />
 
-        <div className="search-tabs">
+        <div className="search-tabs" role="tablist">
           <button
             className={`search-tab ${activeTab === 'channels' ? 'search-tab--active' : ''}`}
             onClick={() => setActiveTab('channels')}
+            role="tab" aria-selected={activeTab === 'channels'}
           >
             Channels
           </button>
           <button
             className={`search-tab ${activeTab === 'people' ? 'search-tab--active' : ''}`}
             onClick={() => setActiveTab('people')}
+            role="tab" aria-selected={activeTab === 'people'}
           >
             People
           </button>

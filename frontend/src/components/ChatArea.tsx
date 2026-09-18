@@ -21,13 +21,22 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channel }) => {
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const activeChannelRef = useRef<string | null>(null)
 
   const fetchMessages = useCallback(async (channelId: string) => {
     setLoading(true)
     setError('')
     try {
       const msgs = await getMessages(channelId)
-      setMessages((msgs ?? []).reverse())
+      if (activeChannelRef.current !== channelId) return
+      setMessages(prev => {
+        const byId = new Map<string, MessageItem>()
+        prev.forEach(m => byId.set(m.message_id, m))
+        ;(msgs ?? []).forEach(m => byId.set(m.message_id, m))
+        return [...byId.values()].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages')
     } finally {
@@ -35,13 +44,15 @@ const ChatArea: React.FC<ChatAreaProps> = ({ channel }) => {
     }
   }, [])
 
+  const channelId = channel?.channel_id ?? null
+
   useEffect(() => {
-    if (channel) {
-      fetchMessages(channel.channel_id)
-    } else {
-      setMessages([])
+    activeChannelRef.current = channelId
+    setMessages([])
+    if (channelId) {
+      fetchMessages(channelId)
     }
-  }, [channel, fetchMessages])
+  }, [channelId, fetchMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
